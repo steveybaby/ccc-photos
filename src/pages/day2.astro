@@ -4,6 +4,24 @@ import PhotoCarousel from '../components/PhotoCarousel.astro';
 import PhotoLoader from '../components/PhotoLoader.astro';
 import RideStats from '../components/RideStats.astro';
 import DayNavigation from '../components/DayNavigation.astro';
+
+// Day information for title generation
+const currentDay = 2;
+const dayInfo = {
+  1: { route: "San Francisco to Santa Cruz", date: "Fri, Sep 6, 2025" },
+  2: { route: "Santa Cruz to Monterey", date: "Sat, Sep 7, 2025" },
+  3: { route: "Monterey to Big Sur", date: "Sun, Sep 8, 2025" },
+  4: { route: "Paso Robles to Cambria", date: "Mon, Sep 9, 2025" },
+  5: { route: "Day 5 Route", date: "Tue, Sep 10, 2025" },
+  6: { route: "Day 6 Route", date: "Wed, Sep 11, 2025" },
+  7: { route: "Day 7 Route", date: "Thu, Sep 12, 2025" },
+  8: { route: "Day 8 Route", date: "Fri, Sep 13, 2025" }
+};
+
+const currentDayInfo = dayInfo[currentDay];
+const pageTitle = currentDayInfo
+  ? `Fun Finders - CCC Day ${currentDay} - ${currentDayInfo.date} (${currentDayInfo.route})`
+  : "CCC Fun Finders 2025";
 ---
 
 <html lang="en">
@@ -19,12 +37,7 @@ import DayNavigation from '../components/DayNavigation.astro';
 		<DayNavigation currentDay={2} />
 		<div class="container">
 			<header class="hero">
-				<h1>CCC Day 2</h1>
-				<p class="subtitle">Fun Finders 2025 • September 7, 2025</p>
-				<p class="description">
-					Explore the cycling route and discover photos from our adventure.
-					Click on the camera markers to view photos and videos from each location.
-				</p>
+				<h1>{pageTitle}</h1>
 			</header>
 
 			<main class="main-content">
@@ -63,7 +76,7 @@ import DayNavigation from '../components/DayNavigation.astro';
 	}
 
 	body {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
 		min-height: 100vh;
 		color: #333;
 	}
@@ -81,7 +94,7 @@ import DayNavigation from '../components/DayNavigation.astro';
 	}
 
 	.hero h1 {
-		font-size: 3.5rem;
+		font-size: 1.5rem;
 		font-weight: 700;
 		margin-bottom: 0.5rem;
 		background: linear-gradient(45deg, #fff, #f0f8ff);
@@ -123,7 +136,7 @@ import DayNavigation from '../components/DayNavigation.astro';
 		}
 
 		.hero h1 {
-			font-size: 2.5rem;
+			font-size: 1.2rem;
 		}
 
 		.subtitle {

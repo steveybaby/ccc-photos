@@ -20,6 +20,25 @@
       this.loadPhotos();
     }
 
+    getNoLocationTitle() {
+      const dayConfig = window.dayConfig;
+      if (!dayConfig) return "Photos without location";
+
+      const dayRoutes = {
+        1: "San Francisco to Santa Cruz",
+        2: "Santa Cruz to Monterey",
+        3: "Monterey to Big Sur",
+        4: "Paso Robles to Cambria",
+        5: "Day 5 Route",
+        6: "Day 6 Route",
+        7: "Day 7 Route",
+        8: "Day 8 Route"
+      };
+
+      const route = dayRoutes[dayConfig.day] || "Unknown Route";
+      return `Day ${dayConfig.day} (${route}) - Photos without location`;
+    }
+
     async loadPhotos() {
       try {
         // Load photo manifest using day configuration
@@ -87,6 +106,14 @@
 
         console.log(`Using ${this.photos.length} photos in ${this.photoGroups.length} groups`);
         console.log(`Found ${this.photosWithoutLocation.length} photos without location data`);
+
+        // Expose photo data to global window for RideStats component
+        window.photosData = {
+          photos: [...this.photos, ...this.photosWithoutLocation],
+          groups: this.photoGroups,
+          photosWithoutLocation: this.photosWithoutLocation
+        };
+
         this.addMarkersToMap();
 
         // Check for photo URL parameters
@@ -191,6 +218,14 @@
       console.log(`Found ${this.photosWithoutLocation.length} photos without location data (legacy mode)`);
 
       await this.groupPhotos();
+
+      // Expose photo data to global window for RideStats component (legacy mode)
+      window.photosData = {
+        photos: [...this.photos, ...this.photosWithoutLocation],
+        groups: this.photoGroups,
+        photosWithoutLocation: this.photosWithoutLocation
+      };
+
       this.addMarkersToMap();
     }
 
@@ -305,7 +340,7 @@
       if (this.photosWithoutLocation.length > 0) {
         completeGroups.push({
           photos: this.photosWithoutLocation,
-          locationName: "Photos without location"
+          locationName: this.getNoLocationTitle()
         });
       }
 
@@ -344,7 +379,7 @@
 
             L.DomEvent.on(div, 'click', () => {
               window.photoCarousel.open(this.photosWithoutLocation, 0, {
-                locationName: "Photos without location",
+                locationName: this.getNoLocationTitle(),
                 groupIndex: this.photoGroups.length, // This will be the last index in completeGroups
                 totalGroups: completeGroups.length,
                 allGroups: completeGroups
@@ -392,7 +427,7 @@
             // Create a virtual group for photos without location
             foundGroup = {
               photos: this.photosWithoutLocation,
-              locationName: "Photos without location"
+              locationName: this.getNoLocationTitle()
             };
           }
         }
@@ -403,13 +438,13 @@
           if (this.photosWithoutLocation.length > 0) {
             completeGroups.push({
               photos: this.photosWithoutLocation,
-              locationName: "Photos without location"
+              locationName: this.getNoLocationTitle()
             });
           }
 
           // Determine which group this is
           let contextGroupIndex = 0;
-          if (foundGroup.locationName === "Photos without location") {
+          if (foundGroup.locationName === this.getNoLocationTitle()) {
             contextGroupIndex = this.photoGroups.length;
           } else {
             contextGroupIndex = this.photoGroups.findIndex(g => g === foundGroup);

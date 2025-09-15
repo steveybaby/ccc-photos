@@ -4,22 +4,21 @@
 
 <div class="ride-stats" id="ride-stats">
   <div class="stats-container">
+    <div class="stat-item" id="photo-video-stat">
+      <div class="stat-value" id="photo-video-count">--</div>
+    </div>
     <div class="stat-item">
       <div class="stat-value" id="distance-value">--</div>
       <div class="stat-label">Miles</div>
     </div>
     <div class="stat-item">
       <div class="stat-value" id="elevation-value">--</div>
+      <canvas id="elevation-sparkline" width="160" height="30"></canvas>
       <div class="stat-label">Feet Climbed</div>
     </div>
-    <div class="stat-item">
+    <div class="stat-item" id="max-speed-stat">
       <div class="stat-value" id="max-speed-value">--</div>
       <div class="stat-label">Max Speed (mph)</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="elevation-range">--</div>
-      <canvas id="elevation-sparkline" width="160" height="30"></canvas>
-      <div class="stat-label">Elevation Range</div>
     </div>
   </div>
 </div>
@@ -39,14 +38,86 @@
       // Update max speed
       document.getElementById('max-speed-value').textContent = stats.maxSpeed.toFixed(1);
 
-      // Update elevation range
-      const minFt = Math.round(stats.minElevation);
-      const maxFt = Math.round(stats.maxElevation);
-      document.getElementById('elevation-range').textContent = `${minFt} to ${maxFt} ft`;
-
       // Draw elevation sparkline
       drawElevationSparkline();
+
+      // Setup max speed hover functionality
+      setupMaxSpeedHover();
     }
+
+    // Update photo/video count regardless of GPX data
+    updatePhotoVideoCount();
+  }
+
+  // Update photo/video count from manifest data
+  function updatePhotoVideoCount() {
+    console.log('updatePhotoVideoCount called, photosData:', !!window.photosData);
+
+    // Try to get photos data from window (loaded by PhotoLoader)
+    if (window.photosData && window.photosData.photos) {
+      const photos = window.photosData.photos; // All photos are already processed by PhotoLoader
+      const photoCount = photos.filter(p => p.type === 'image').length;
+      const videoCount = photos.filter(p => p.type === 'video').length;
+
+      console.log('Photo data found:', {
+        totalPhotos: window.photosData.photos.length,
+        processedPhotos: photos.length,
+        photoCount,
+        videoCount
+      });
+
+      const countElement = document.getElementById('photo-video-count');
+      if (photoCount > 0 && videoCount > 0) {
+        countElement.innerHTML = `${photoCount} Photos<br>${videoCount} Videos`;
+      } else if (photoCount > 0) {
+        countElement.textContent = `${photoCount} Photos`;
+      } else if (videoCount > 0) {
+        countElement.textContent = `${videoCount} Videos`;
+      } else {
+        countElement.textContent = '--';
+      }
+
+      console.log('Updated count element to:', countElement.textContent);
+
+      // Setup click handler to show first photo
+      setupPhotoVideoClick(photos);
+    } else {
+      console.log('No photos data available yet');
+    }
+    // Note: Removed the retry setTimeout here since we have checkForPhotoData() handling retries
+  }
+
+  // Setup click handler for photo/video tile
+  function setupPhotoVideoClick(photos) {
+    const photoVideoStat = document.getElementById('photo-video-stat');
+    if (!photoVideoStat || photos.length === 0) return;
+
+    // Remove any existing click listeners to prevent duplicates
+    photoVideoStat.replaceWith(photoVideoStat.cloneNode(true));
+    const newPhotoVideoStat = document.getElementById('photo-video-stat');
+
+    newPhotoVideoStat.style.cursor = 'pointer';
+    newPhotoVideoStat.addEventListener('click', () => {
+      console.log('Photo/video tile clicked, photos:', photos.length);
+
+      // Find the first photo (by timestamp if available, otherwise first in list)
+      const sortedPhotos = photos.slice().sort((a, b) => {
+        if (a.timestamp && b.timestamp) {
+          return new Date(a.timestamp) - new Date(b.timestamp);
+        }
+        return 0;
+      });
+
+      const firstPhoto = sortedPhotos[0];
+      console.log('First photo:', firstPhoto);
+
+      if (firstPhoto && window.photoCarousel) {
+        console.log('Opening photo carousel with', sortedPhotos.length, 'photos');
+        window.photoCarousel.open(sortedPhotos, 0);
+      } else {
+        console.log('Cannot open carousel - firstPhoto:', !!firstPhoto, 'photoCarousel:', !!window.photoCarousel);
+      }
+    });
   }
 
   function drawElevationSparkline() {
@@ -161,6 +232,25 @@
       }
     });
 
+    canvas.addEventListener('click', (event) => {
+      if (!window.routeMap || sampledTrackPoints.length === 0 || !window.L) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+
+      // Calculate which track point corresponds to this X position
+      const relativeX = (mouseX - padding) / (width - 2 * padding);
+      const trackIndex = Math.round(relativeX * (sampledTrackPoints.length - 1));
+
+      if (trackIndex >= 0 && trackIndex < sampledTrackPoints.length) {
+        const trackPoint = sampledTrackPoints[trackIndex];
+        // Center map on the clicked point and zoom in
+        const currentZoom = window.routeMap.getZoom();
+        const newZoom = Math.min(currentZoom + 3, 18); // Zoom in 3 levels, max zoom 18
+        window.routeMap.setView([trackPoint.lat, trackPoint.lng], newZoom);
+      }
+    });
+
     canvas.addEventListener('mousemove', (event) => {
       if (!window.routeMap || sampledTrackPoints.length === 0 || !window.L) return;
 
@@ -196,6 +286,26 @@
     });
   }
 
+  // Setup hover functionality for max speed stat
+  function setupMaxSpeedHover() {
+    const maxSpeedStat = document.getElementById('max-speed-stat');
+    if (!maxSpeedStat) return;
+
+    maxSpeedStat.addEventListener('mouseenter', () => {
+      // Show max speed marker on map
+      if (window.maxSpeedMarker && window.routeMap) {
+        window.maxSpeedMarker.addTo(window.routeMap);
+      }
+    });
+
+    maxSpeedStat.addEventListener('mouseleave', () => {
+      // Hide max speed marker from map
+      if (window.maxSpeedMarker && window.routeMap) {
+        window.routeMap.removeLayer(window.maxSpeedMarker);
+      }
+    });
+  }
+
   // Check for GPX data periodically
   function checkForGpxData() {
     if (window.gpxData && window.gpxData.statistics) {
@@ -205,11 +315,22 @@
     }
   }
 
+  // Check for photo data independently
+  function checkForPhotoData() {
+    updatePhotoVideoCount();
+    // Keep checking periodically in case photos load later
+    setTimeout(checkForPhotoData, 2000);
+  }
+
   // Start checking when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkForGpxData);
+    document.addEventListener('DOMContentLoaded', () => {
+      checkForGpxData();
+      checkForPhotoData();
+    });
   } else {
     checkForGpxData();
+    checkForPhotoData();
   }
 </script>
 
@@ -232,7 +353,7 @@
   .stat-item {
     text-align: center;
     padding: 1rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1e40af, #2563eb);
     border-radius: 12px;
     color: white;
     transition: transform 0.3s ease;
@@ -240,6 +361,16 @@
 
   .stat-item:hover {
     transform: translateY(-2px);
+  }
+
+  /* Special hover styling for max speed stat to indicate it's interactive */
+  #max-speed-stat {
+    cursor: pointer;
+  }
+
+  #max-speed-stat:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
   }
 
   .stat-value {
@@ -253,16 +384,22 @@
     background-clip: text;
   }
 
-  /* Make elevation range text smaller */
-  #elevation-range {
-    font-size: 1.8rem;
-  }
-
-  /* Sparkline styling */
+  /* Sparkline styling for elevation tile */
   #elevation-sparkline {
     margin: 0.5rem 0;
     border-radius: 4px;
     opacity: 0.9;
+  }
+
+  /* Photo/video tile specific styling */
+  #photo-video-stat {
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #photo-video-stat:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
   }
 
   .stat-label {
@@ -290,10 +427,6 @@
 
     .stat-value {
       font-size: 2rem;
-    }
-
-    #elevation-range {
-      font-size: 1.5rem;
     }
 
     #elevation-sparkline {

@@ -1,5 +1,27 @@
 ---
+import Map from '../components/Map.astro';
+import PhotoCarousel from '../components/PhotoCarousel.astro';
+import PhotoLoader from '../components/PhotoLoader.astro';
+import RideStats from '../components/RideStats.astro';
 import DayNavigation from '../components/DayNavigation.astro';
+
+// Day information for title generation
+const currentDay = 8;
+const dayInfo = {
+  1: { route: "San Francisco to Santa Cruz", date: "Fri, Sep 6, 2025" },
+  2: { route: "Santa Cruz to Monterey", date: "Sat, Sep 7, 2025" },
+  3: { route: "Monterey to Big Sur", date: "Sun, Sep 8, 2025" },
+  4: { route: "Paso Robles to Cambria", date: "Mon, Sep 9, 2025" },
+  5: { route: "Cambria to Pismo Beach", date: "Tue, Sep 10, 2025" },
+  6: { route: "Pismo Beach to Buellton", date: "Wed, Sep 11, 2025" },
+  7: { route: "Buellton to Ventura", date: "Thu, Sep 12, 2025" },
+  8: { route: "Ventura to Malibu", date: "Fri, Sep 13, 2025" }
+};
+
+const currentDayInfo = dayInfo[currentDay];
+const pageTitle = currentDayInfo
+  ? `Fun Finders - CCC Day ${currentDay} - ${currentDayInfo.date} (${currentDayInfo.route})`
+  : "CCC Fun Finders 2025";
 ---
 
 <html lang="en">
@@ -15,15 +37,29 @@ import DayNavigation from '../components/DayNavigation.astro';
 		<DayNavigation currentDay={8} />
 		<div class="container">
 			<header class="hero">
-				<h1>CCC Day 8</h1>
-				<p class="subtitle">Fun Finders 2025 • September 13, 2025</p>
-				<div class="coming-soon">
-					<div class="coming-soon-icon">🚧</div>
-					<h2>Coming Soon</h2>
-					<p>This day's adventure is still being prepared. Check back soon for photos and route details!</p>
-				</div>
+				<h1>{pageTitle}</h1>
 			</header>
+
+			<main class="main-content">
+				<RideStats />
+				<section class="map-section">
+					<Map />
+				</section>
+			</main>
 		</div>
+
+		<PhotoCarousel />
+		<PhotoLoader />
+
+		<!-- Day 8 specific configuration -->
+		<script>
+			window.dayConfig = {
+				day: 8,
+				gpxFile: '/gpx/CCC_Day_8_Ventura_to_Malibu.gpx',
+				photosDir: 'day 8',
+				manifestPath: '/photos-manifest-day8.json'
+			};
+		</script>
 	</body>
 </html>
 
@@ -40,7 +76,7 @@ import DayNavigation from '../components/DayNavigation.astro';
 	}
 
 	body {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
 		min-height: 100vh;
 		color: #333;
 	}
@@ -49,19 +85,16 @@ import DayNavigation from '../components/DayNavigation.astro';
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 2rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-height: calc(100vh - 120px);
 	}
 
 	.hero {
 		text-align: center;
 		color: white;
+		margin-bottom: 3rem;
 	}
 
 	.hero h1 {
-		font-size: 3.5rem;
+		font-size: 1.5rem;
 		font-weight: 700;
 		margin-bottom: 0.5rem;
 		background: linear-gradient(45deg, #fff, #f0f8ff);
@@ -73,40 +106,28 @@ import DayNavigation from '../components/DayNavigation.astro';
 	.subtitle {
 		font-size: 1.5rem;
 		font-weight: 300;
-		margin-bottom: 3rem;
+		margin-bottom: 1rem;
 		opacity: 0.9;
 	}
 
-	.coming-soon {
+	.description {
+		font-size: 1.1rem;
+		max-width: 600px;
+		margin: 0 auto;
+		opacity: 0.8;
+		line-height: 1.8;
+	}
+
+	.main-content {
 		background: rgba(255, 255, 255, 0.95);
 		border-radius: 20px;
-		padding: 3rem;
+		padding: 2rem;
 		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
 		backdrop-filter: blur(10px);
-		color: #333;
-		max-width: 500px;
-		margin: 0 auto;
 	}
 
-	.coming-soon-icon {
-		font-size: 4rem;
-		margin-bottom: 1rem;
-	}
-
-	.coming-soon h2 {
-		font-size: 2.5rem;
-		font-weight: 600;
-		margin-bottom: 1rem;
-		background: linear-gradient(135deg, #667eea, #764ba2);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-
-	.coming-soon p {
-		font-size: 1.1rem;
-		line-height: 1.6;
-		opacity: 0.8;
+	.map-section {
+		margin-bottom: 2rem;
 	}
 
 	@media (max-width: 768px) {
@@ -115,23 +136,20 @@ import DayNavigation from '../components/DayNavigation.astro';
 		}
 
 		.hero h1 {
-			font-size: 2.5rem;
+			font-size: 1.2rem;
 		}
 
 		.subtitle {
 			font-size: 1.2rem;
 		}
 
-		.coming-soon {
-			padding: 2rem;
-		}
-
-		.coming-soon h2 {
-			font-size: 2rem;
-		}
-
-		.coming-soon p {
+		.description {
 			font-size: 1rem;
+		}
+
+		.main-content {
+			padding: 1rem;
+			border-radius: 12px;
 		}
 	}
 </style>

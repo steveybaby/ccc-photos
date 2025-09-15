@@ -2,7 +2,12 @@
 // Map will load GPX data dynamically in the browser
 ---
 
-<div id="map" class="map-container"></div>
+<div id="map" class="map-container">
+  <button id="reset-map-button" class="reset-map-btn" title="Reset map view">
+    <span class="reset-icon">⌂</span>
+    <span class="reset-label">Reset</span>
+  </button>
+</div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -191,7 +196,7 @@
         map.fitBounds(bounds, { padding: [20, 20] });
       }
 
-      // Add max speed marker if available
+      // Create max speed marker if available (initially hidden)
       if (gpxData.statistics && gpxData.statistics.maxSpeedPoint && gpxData.statistics.maxSpeed > 0) {
         const maxSpeedMarker = L.marker([gpxData.statistics.maxSpeedPoint.lat, gpxData.statistics.maxSpeedPoint.lng], {
           icon: L.divIcon({
@@ -200,7 +205,7 @@
             iconSize: [100, 40],
             iconAnchor: [50, 40]
           })
-        }).addTo(map);
+        });
 
         maxSpeedMarker.bindPopup(`
           <div style="text-align: center;">
@@ -208,6 +213,9 @@
             ${gpxData.statistics.maxSpeed.toFixed(1)} mph
           </div>
         `);
+
+        // Store reference for hover functionality (don't add to map yet)
+        window.maxSpeedMarker = maxSpeedMarker;
       }
 
       // Store map reference globally for photo markers
@@ -217,6 +225,12 @@
         gpxData.trackLatLngs = gpxData.trackPoints.map(point => [point.lat, point.lng]);
       }
       window.gpxData = gpxData;
+
+      // Store route bounds for reset functionality
+      if (gpxData.trackPoints.length > 0) {
+        const trackLatLngs = gpxData.trackPoints.map(point => [point.lat, point.lng]);
+        window.routeBounds = L.latLngBounds(trackLatLngs);
+      }
 
     } catch (error) {
       console.error('Failed to load GPX data:', error);
@@ -229,11 +243,27 @@
     }
   }
 
+  // Setup reset button functionality
+  function setupResetButton() {
+    const resetButton = document.getElementById('reset-map-button');
+    if (resetButton) {
+      resetButton.addEventListener('click', () => {
+        if (window.routeMap && window.routeBounds) {
+          window.routeMap.fitBounds(window.routeBounds, { padding: [20, 20] });
+        }
+      });
+    }
+  }
+
   // Load the map when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadMap);
+    document.addEventListener('DOMContentLoaded', () => {
+      loadMap();
+      setupResetButton();
+    });
   } else {
     loadMap();
+    setupResetButton();
   }
 </script>
 
@@ -244,6 +274,57 @@
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    position: relative;
+  }
+
+  .reset-map-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .reset-map-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .reset-map-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .reset-icon {
+    color: #374151;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .reset-label {
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .reset-map-btn:hover .reset-icon,
+  .reset-map-btn:hover .reset-label {
+    color: #3b82f6;
   }
 </style>
 
