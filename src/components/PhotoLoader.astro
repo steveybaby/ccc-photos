@@ -1,0 +1,465 @@
+---
+// Photo loader component that extracts EXIF and adds markers to map
+---
+
+<script type="module">
+  // Import ExifReader
+  let ExifReader;
+  try {
+    ExifReader = await import('https://cdn.skypack.dev/exifr');
+  } catch (error) {
+    console.warn('Failed to load ExifReader:', error);
+    ExifReader = null;
+  }
+
+  class PhotoLoader {
+    constructor() {
+      this.photos = [];
+      this.photoGroups = [];
+      this.photosWithoutLocation = [];
+      this.loadPhotos();
+    }
+
+    async loadPhotos() {
+      try {
+        // Load photo manifest using day configuration
+        const manifestPath = window.dayConfig?.manifestPath || '/photos-manifest.json';
+        const response = await fetch(manifestPath);
+        if (!response.ok) {
+          throw new Error('Photos manifest not found');
+        }
+
+        const manifest = await response.json();
+        console.log(`Loaded manifest with ${manifest.photos.length} photos and ${manifest.groups.length} groups`);
+
+        // Use pre-processed photos from manifest
+        this.photos = manifest.photos
+          .filter(photo => photo.processed && !photo.error && photo.lat && photo.lng)
+          .map(photo => ({
+            name: photo.originalName,
+            url: photo.url,
+            lat: photo.lat,
+            lng: photo.lng,
+            timestamp: photo.timestamp,
+            type: photo.type
+          }));
+
+        // Collect photos without geolocation
+        this.photosWithoutLocation = manifest.photos
+          .filter(photo => photo.processed && !photo.error && (!photo.lat || !photo.lng))
+          .map(photo => ({
+            name: photo.originalName,
+            url: photo.url,
+            lat: null,
+            lng: null,
+            timestamp: photo.timestamp,
+            type: photo.type
+          }));
+
+        // Use pre-calculated groups from manifest
+        this.photoGroups = manifest.groups.map(group => ({
+          lat: group.lat,
+          lng: group.lng,
+          photos: group.photos.map(photo => ({
+            name: photo.originalName,
+            url: photo.url,
+            lat: photo.lat,
+            lng: photo.lng,
+            timestamp: photo.timestamp,
+            type: photo.type
+          })),
+          count: group.count,
+          locationName: group.locationName,
+          earliestTimestamp: group.photos.reduce((earliest, photo) => {
+            if (!photo.timestamp) return earliest;
+            if (!earliest) return photo.timestamp;
+            return photo.timestamp < earliest ? photo.timestamp : earliest;
+          }, null)
+        }));
+
+        // Sort groups by earliest timestamp
+        this.photoGroups.sort((a, b) => {
+          if (!a.earliestTimestamp && !b.earliestTimestamp) return 0;
+          if (!a.earliestTimestamp) return 1;
+          if (!b.earliestTimestamp) return -1;
+          return new Date(a.earliestTimestamp) - new Date(b.earliestTimestamp);
+        });
+
+        console.log(`Using ${this.photos.length} photos in ${this.photoGroups.length} groups`);
+        console.log(`Found ${this.photosWithoutLocation.length} photos without location data`);
+        this.addMarkersToMap();
+
+      } catch (error) {
+        console.error('Failed to load photos manifest:', error);
+        console.log('Falling back to hardcoded photo list...');
+        await this.loadPhotosLegacy();
+      }
+    }
+
+    async loadPhotosLegacy() {
+      // Fallback to original hardcoded list
+      const photoFiles = [
+        'IMG_0032.jpeg', 'IMG_0036.jpeg', 'IMG_4329.jpeg', 'IMG_4330.jpeg',
+        'IMG_4333.jpeg', 'IMG_4334.jpeg', 'IMG_4337.jpeg', 'IMG_4339.jpeg',
+        'IMG_4342.jpeg', 'IMG_4345.jpeg', 'IMG_4347.jpeg', 'IMG_4349.jpeg',
+        'IMG_4353.jpeg', 'IMG_4354.MOV', 'IMG_4355.jpeg', 'IMG_4359.jpeg',
+        'IMG_4363.jpeg', 'IMG_4364.jpeg', 'IMG_4365.jpeg', 'IMG_4367.jpeg'
+      ];
+
+      const photos = [];
+
+      for (const fileName of photoFiles) {
+        try {
+          const url = `/photos/${fileName}`;
+
+          // For videos, skip EXIF extraction and use default location
+          if (fileName.toLowerCase().includes('.mov') || fileName.toLowerCase().includes('.mp4')) {
+            photos.push({
+              name: fileName,
+              url: url,
+              lat: 37.808, // Default SF location
+              lng: -122.415,
+              timestamp: null,
+              type: 'video'
+            });
+            continue;
+          }
+
+          // Create a blob to read EXIF data
+          const response = await fetch(url);
+          const blob = await response.blob();
+
+          if (ExifReader) {
+            try {
+              const exif = await ExifReader.parse(blob);
+
+              if (exif && exif.latitude && exif.longitude) {
+                photos.push({
+                  name: fileName,
+                  url: url,
+                  lat: exif.latitude,
+                  lng: exif.longitude,
+                  timestamp: exif.DateTimeOriginal || exif.CreateDate || null,
+                  type: 'image'
+                });
+              } else {
+                // Fallback: add photo without GPS data
+                console.warn(`No GPS data for ${fileName}`);
+                photos.push({
+                  name: fileName,
+                  url: url,
+                  lat: 37.808, // Default SF location
+                  lng: -122.415,
+                  timestamp: null,
+                  type: 'image'
+                });
+              }
+            } catch (exifError) {
+              console.warn(`EXIF extraction failed for ${fileName}:`, exifError);
+              photos.push({
+                name: fileName,
+                url: url,
+                lat: 37.808, // Default SF location
+                lng: -122.415,
+                timestamp: null,
+                type: 'image'
+              });
+            }
+          } else {
+            // No ExifReader available, use default location
+            photos.push({
+              name: fileName,
+              url: url,
+              lat: 37.808, // Default SF location
+              lng: -122.415,
+              timestamp: null,
+              type: 'image'
+            });
+          }
+
+        } catch (error) {
+          console.warn(`Failed to process ${fileName}:`, error);
+        }
+      }
+
+      this.photos = photos.filter(photo => photo.lat && photo.lng);
+      this.photosWithoutLocation = photos.filter(photo => !photo.lat || !photo.lng);
+
+      console.log(`Found ${this.photosWithoutLocation.length} photos without location data (legacy mode)`);
+
+      await this.groupPhotos();
+      this.addMarkersToMap();
+    }
+
+    async groupPhotos() {
+      const groups = [];
+      const used = new Set();
+      const radiusMiles = 0.5;
+      const milesPerDegree = 69;
+
+      for (let i = 0; i < this.photos.length; i++) {
+        if (used.has(i)) continue;
+
+        const group = [this.photos[i]];
+        used.add(i);
+
+        for (let j = i + 1; j < this.photos.length; j++) {
+          if (used.has(j)) continue;
+
+          const distance = Math.sqrt(
+            Math.pow((this.photos[i].lat - this.photos[j].lat) * milesPerDegree, 2) +
+            Math.pow((this.photos[i].lng - this.photos[j].lng) * milesPerDegree, 2)
+          );
+
+          if (distance <= radiusMiles) {
+            group.push(this.photos[j]);
+            used.add(j);
+          }
+        }
+
+        const centerLat = group.reduce((sum, photo) => sum + photo.lat, 0) / group.length;
+        const centerLng = group.reduce((sum, photo) => sum + photo.lng, 0) / group.length;
+
+        // Get location name using reverse geocoding
+        const locationName = await this.getLocationName(centerLat, centerLng);
+
+        groups.push({
+          lat: centerLat,
+          lng: centerLng,
+          photos: group,
+          count: group.length,
+          locationName: locationName,
+          earliestTimestamp: group.reduce((earliest, photo) => {
+            if (!photo.timestamp) return earliest;
+            if (!earliest) return photo.timestamp;
+            return photo.timestamp < earliest ? photo.timestamp : earliest;
+          }, null)
+        });
+      }
+
+      // Sort groups by earliest timestamp
+      groups.sort((a, b) => {
+        if (!a.earliestTimestamp && !b.earliestTimestamp) return 0;
+        if (!a.earliestTimestamp) return 1;
+        if (!b.earliestTimestamp) return -1;
+        return new Date(a.earliestTimestamp) - new Date(b.earliestTimestamp);
+      });
+
+      this.photoGroups = groups;
+    }
+
+    async getLocationName(lat, lng) {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16`);
+        const data = await response.json();
+
+        if (data && data.display_name) {
+          // Extract meaningful parts of the address
+          const parts = data.display_name.split(',').map(p => p.trim());
+          if (parts.length >= 2) {
+            // Try to get neighborhood, city, or street
+            const road = data.address?.road || '';
+            const neighborhood = data.address?.neighbourhood || data.address?.suburb || '';
+            const city = data.address?.city || data.address?.town || '';
+
+            if (neighborhood && city) {
+              return `${neighborhood}, ${city}`;
+            } else if (road && city) {
+              return `${road}, ${city}`;
+            } else if (city) {
+              return city;
+            } else {
+              return parts.slice(0, 2).join(', ');
+            }
+          }
+          return data.display_name;
+        }
+
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      } catch (error) {
+        console.warn('Geocoding failed:', error);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+
+    async addMarkersToMap() {
+      // Wait for map to be available
+      let attempts = 0;
+      while (!window.routeMap && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (!window.routeMap) {
+        console.error('Map not available after 50 attempts');
+        return;
+      }
+
+      const L = await import('https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js');
+
+      // Create complete groups array including no-GPS photos
+      const completeGroups = [...this.photoGroups];
+      if (this.photosWithoutLocation.length > 0) {
+        completeGroups.push({
+          photos: this.photosWithoutLocation,
+          locationName: "Photos without location"
+        });
+      }
+
+      // Add markers for each photo group
+      this.photoGroups.forEach((group, index) => {
+        const marker = L.marker([group.lat, group.lng], {
+          icon: L.divIcon({
+            className: 'camera-marker',
+            html: `<div class="camera-icon">📷<span class="photo-count">${group.count > 1 ? group.count : ''}</span></div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          })
+        }).addTo(window.routeMap);
+
+        marker.on('click', () => {
+          window.photoCarousel.open(group.photos, 0, {
+            locationName: group.locationName,
+            groupIndex: index,
+            totalGroups: completeGroups.length,
+            allGroups: completeGroups
+          });
+        });
+      });
+
+      // Add fixed control for photos without geolocation (top-left, next to zoom controls)
+      if (this.photosWithoutLocation.length > 0) {
+        // Create a custom Leaflet control
+        const NoGPSControl = L.Control.extend({
+          onAdd: function(map) {
+            const div = L.DomUtil.create('div', 'leaflet-control-no-gps');
+            div.innerHTML = `<div class="no-gps-control-badge">
+              <span class="no-gps-icon">📍</span>
+              <span class="no-gps-label">No GPS</span>
+              <span class="no-gps-count">${this.photosWithoutLocation.length}</span>
+            </div>`;
+
+            L.DomEvent.on(div, 'click', () => {
+              window.photoCarousel.open(this.photosWithoutLocation, 0, {
+                locationName: "Photos without location",
+                groupIndex: this.photoGroups.length, // This will be the last index in completeGroups
+                totalGroups: completeGroups.length,
+                allGroups: completeGroups
+              });
+            });
+
+            return div;
+          }.bind(this)
+        });
+
+        // Add the control to the map
+        new NoGPSControl({ position: 'topleft' }).addTo(window.routeMap);
+      }
+    }
+  }
+
+  // Initialize photo loader when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      new PhotoLoader();
+    });
+  } else {
+    new PhotoLoader();
+  }
+</script>
+
+<style is:global>
+  .camera-marker {
+    background: none !important;
+    border: none !important;
+  }
+
+  .camera-icon {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .camera-icon:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .photo-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  .leaflet-control-no-gps {
+    background: none !important;
+    border: none !important;
+    margin-top: 10px !important;
+  }
+
+  .no-gps-control-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: 2px solid #92400e;
+    border-radius: 16px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 76px;
+    height: 28px;
+  }
+
+  .no-gps-control-badge:hover {
+    background: linear-gradient(135deg, #d97706, #92400e);
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+  }
+
+  .no-gps-icon {
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .no-gps-label {
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+  }
+
+  .no-gps-count {
+    background: rgba(255, 255, 255, 0.9);
+    color: #92400e;
+    border-radius: 8px;
+    padding: 1px 4px;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 14px;
+    text-align: center;
+    line-height: 12px;
+  }
+</style>

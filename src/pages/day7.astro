@@ -1,0 +1,137 @@
+---
+import DayNavigation from '../components/DayNavigation.astro';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>CCC Day 7 - Fun Finders 2025</title>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<DayNavigation currentDay={7} />
+		<div class="container">
+			<header class="hero">
+				<h1>CCC Day 7</h1>
+				<p class="subtitle">Fun Finders 2025 • September 12, 2025</p>
+				<div class="coming-soon">
+					<div class="coming-soon-icon">🚧</div>
+					<h2>Coming Soon</h2>
+					<p>This day's adventure is still being prepared. Check back soon for photos and route details!</p>
+				</div>
+			</header>
+		</div>
+	</body>
+</html>
+
+<style>
+	* {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	html {
+		font-family: 'Inter', system-ui, sans-serif;
+		line-height: 1.6;
+	}
+
+	body {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		min-height: 100vh;
+		color: #333;
+	}
+
+	.container {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: calc(100vh - 120px);
+	}
+
+	.hero {
+		text-align: center;
+		color: white;
+	}
+
+	.hero h1 {
+		font-size: 3.5rem;
+		font-weight: 700;
+		margin-bottom: 0.5rem;
+		background: linear-gradient(45deg, #fff, #f0f8ff);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.subtitle {
+		font-size: 1.5rem;
+		font-weight: 300;
+		margin-bottom: 3rem;
+		opacity: 0.9;
+	}
+
+	.coming-soon {
+		background: rgba(255, 255, 255, 0.95);
+		border-radius: 20px;
+		padding: 3rem;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+		backdrop-filter: blur(10px);
+		color: #333;
+		max-width: 500px;
+		margin: 0 auto;
+	}
+
+	.coming-soon-icon {
+		font-size: 4rem;
+		margin-bottom: 1rem;
+	}
+
+	.coming-soon h2 {
+		font-size: 2.5rem;
+		font-weight: 600;
+		margin-bottom: 1rem;
+		background: linear-gradient(135deg, #667eea, #764ba2);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.coming-soon p {
+		font-size: 1.1rem;
+		line-height: 1.6;
+		opacity: 0.8;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 1rem;
+		}
+
+		.hero h1 {
+			font-size: 2.5rem;
+		}
+
+		.subtitle {
+			font-size: 1.2rem;
+		}
+
+		.coming-soon {
+			padding: 2rem;
+		}
+
+		.coming-soon h2 {
+			font-size: 2rem;
+		}
+
+		.coming-soon p {
+			font-size: 1rem;
+		}
+	}
+</style>

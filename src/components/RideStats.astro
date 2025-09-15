@@ -1,0 +1,250 @@
+---
+// Ride statistics component
+---
+
+<div class="ride-stats" id="ride-stats">
+  <div class="stats-container">
+    <div class="stat-item">
+      <div class="stat-value" id="distance-value">--</div>
+      <div class="stat-label">Miles</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="elevation-value">--</div>
+      <div class="stat-label">Feet Climbed</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="max-speed-value">--</div>
+      <div class="stat-label">Max Speed (mph)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="elevation-range">--</div>
+      <canvas id="elevation-sparkline" width="160" height="30"></canvas>
+      <div class="stat-label">Elevation Range</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Wait for GPX data to be loaded
+  function updateRideStats() {
+    if (window.gpxData && window.gpxData.statistics) {
+      const stats = window.gpxData.statistics;
+
+      // Update distance
+      document.getElementById('distance-value').textContent = stats.totalDistance.toFixed(1);
+
+      // Update elevation gain
+      document.getElementById('elevation-value').textContent = Math.round(stats.totalElevationGain).toLocaleString();
+
+      // Update max speed
+      document.getElementById('max-speed-value').textContent = stats.maxSpeed.toFixed(1);
+
+      // Update elevation range
+      const minFt = Math.round(stats.minElevation);
+      const maxFt = Math.round(stats.maxElevation);
+      document.getElementById('elevation-range').textContent = `${minFt} to ${maxFt} ft`;
+
+      // Draw elevation sparkline
+      drawElevationSparkline();
+    }
+  }
+
+  function drawElevationSparkline() {
+    if (!window.gpxData || !window.gpxData.tracks || !window.gpxData.tracks[0]) return;
+
+    const canvas = document.getElementById('elevation-sparkline');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const track = window.gpxData.tracks[0];
+
+    // Get elevation data from track points
+    const elevations = [];
+    track.forEach(segment => {
+      segment.forEach(point => {
+        if (point.ele !== undefined) {
+          elevations.push(point.ele * 3.28084); // Convert meters to feet
+        }
+      });
+    });
+
+    if (elevations.length === 0) return;
+
+    // Sample the data to fit the canvas width (take every nth point for smooth curve)
+    const maxPoints = 80; // Maximum points to draw for smooth sparkline
+    const step = Math.max(1, Math.floor(elevations.length / maxPoints));
+    const sampledElevations = [];
+    for (let i = 0; i < elevations.length; i += step) {
+      sampledElevations.push(elevations[i]);
+    }
+
+    // Canvas dimensions
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 2;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Calculate min/max for scaling
+    const minElevation = Math.min(...sampledElevations);
+    const maxElevation = Math.max(...sampledElevations);
+    const elevationRange = maxElevation - minElevation;
+
+    if (elevationRange === 0) return;
+
+    // Set up drawing style
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Create gradient fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
+    // Begin path for line
+    ctx.beginPath();
+
+    // Calculate points and draw line
+    const points = [];
+    sampledElevations.forEach((elevation, index) => {
+      const x = padding + (index / (sampledElevations.length - 1)) * (width - 2 * padding);
+      const y = height - padding - ((elevation - minElevation) / elevationRange) * (height - 2 * padding);
+      points.push({ x, y });
+
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+
+    // Draw the line
+    ctx.stroke();
+
+    // Fill area under the curve
+    ctx.fillStyle = gradient;
+    ctx.lineTo(points[points.length - 1].x, height);
+    ctx.lineTo(points[0].x, height);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Check for GPX data periodically
+  function checkForGpxData() {
+    if (window.gpxData && window.gpxData.statistics) {
+      updateRideStats();
+    } else {
+      setTimeout(checkForGpxData, 500);
+    }
+  }
+
+  // Start checking when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkForGpxData);
+  } else {
+    checkForGpxData();
+  }
+</script>
+
+<style>
+  .ride-stats {
+    margin: 2rem 0;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    color: white;
+    transition: transform 0.3s ease;
+  }
+
+  .stat-item:hover {
+    transform: translateY(-2px);
+  }
+
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(45deg, #fff, #f0f8ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Make elevation range text smaller */
+  #elevation-range {
+    font-size: 1.8rem;
+  }
+
+  /* Sparkline styling */
+  #elevation-sparkline {
+    margin: 0.5rem 0;
+    border-radius: 4px;
+    opacity: 0.9;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 768px) {
+    .ride-stats {
+      margin: 1rem 0;
+      padding: 1rem;
+    }
+
+    .stats-container {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-item {
+      padding: 0.75rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+    }
+
+    #elevation-range {
+      font-size: 1.5rem;
+    }
+
+    #elevation-sparkline {
+      width: 120px;
+      height: 25px;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-container {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,241 @@
+---
+// Map will load GPX data dynamically in the browser
+---
+
+<div id="map" class="map-container"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<script type="module">
+  // Import Leaflet
+  const L = await import('https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js');
+
+  // Parse GPX function with statistics
+  function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function calculateSpeed(distance, time1, time2) {
+    if (!time1 || !time2) return 0;
+    const timeDiff = (new Date(time2) - new Date(time1)) / 1000 / 3600; // hours
+    return timeDiff > 0 ? distance / timeDiff : 0;
+  }
+
+  function parseGPX(gpxText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(gpxText, 'application/xml');
+
+    const trackPoints = Array.from(doc.querySelectorAll('trkpt')).map(point => ({
+      lat: parseFloat(point.getAttribute('lat')),
+      lng: parseFloat(point.getAttribute('lon')),
+      elevation: point.querySelector('ele')?.textContent ? parseFloat(point.querySelector('ele').textContent) : null,
+      time: point.querySelector('time')?.textContent || null
+    }));
+
+    const bounds = trackPoints.reduce((acc, point) => ({
+      minLat: Math.min(acc.minLat, point.lat),
+      maxLat: Math.max(acc.maxLat, point.lat),
+      minLng: Math.min(acc.minLng, point.lng),
+      maxLng: Math.max(acc.maxLng, point.lng)
+    }), {
+      minLat: trackPoints[0]?.lat || 0,
+      maxLat: trackPoints[0]?.lat || 0,
+      minLng: trackPoints[0]?.lng || 0,
+      maxLng: trackPoints[0]?.lng || 0
+    });
+
+    // Calculate statistics
+    let totalDistance = 0;
+    let totalElevationGain = 0;
+    let maxSpeed = 0;
+    let maxSpeedPoint = null;
+    let minElevation = Infinity;
+    let maxElevation = -Infinity;
+
+    for (let i = 1; i < trackPoints.length; i++) {
+      const prev = trackPoints[i - 1];
+      const curr = trackPoints[i];
+
+      // Calculate distance
+      const segmentDistance = calculateDistance(prev.lat, prev.lng, curr.lat, curr.lng);
+      totalDistance += segmentDistance;
+
+      // Calculate elevation gain
+      if (prev.elevation !== null && curr.elevation !== null) {
+        const elevationDiff = curr.elevation - prev.elevation;
+        if (elevationDiff > 0) {
+          totalElevationGain += elevationDiff;
+        }
+
+        minElevation = Math.min(minElevation, curr.elevation);
+        maxElevation = Math.max(maxElevation, curr.elevation);
+      }
+
+      // Calculate speed
+      const speed = calculateSpeed(segmentDistance, prev.time, curr.time);
+      if (speed > maxSpeed && speed < 100) { // Filter out unrealistic speeds
+        maxSpeed = speed;
+        maxSpeedPoint = curr;
+      }
+    }
+
+    // Convert meters to feet for elevation
+    if (minElevation !== Infinity) {
+      totalElevationGain = totalElevationGain * 3.28084; // meters to feet
+      minElevation = minElevation * 3.28084;
+      maxElevation = maxElevation * 3.28084;
+    } else {
+      minElevation = 0;
+      maxElevation = 0;
+    }
+
+    return {
+      trackPoints,
+      bounds,
+      name: doc.querySelector('name')?.textContent || 'Route',
+      statistics: {
+        totalDistance: totalDistance,
+        totalElevationGain: totalElevationGain,
+        maxSpeed: maxSpeed,
+        maxSpeedPoint: maxSpeedPoint,
+        minElevation: minElevation,
+        maxElevation: maxElevation
+      }
+    };
+  }
+
+  // Load and display GPX data
+  async function loadMap() {
+    try {
+      // Get GPX file from day configuration
+      const gpxFile = window.dayConfig?.gpxFile || '/route.gpx';
+      const response = await fetch(gpxFile);
+      const gpxText = await response.text();
+      const gpxData = parseGPX(gpxText);
+
+      // Initialize the map with San Francisco as fallback
+      let center = [37.7749, -122.4194];
+      let zoom = 12;
+
+      if (gpxData.trackPoints.length > 0) {
+        const lats = gpxData.trackPoints.map(p => p.lat);
+        const lngs = gpxData.trackPoints.map(p => p.lng);
+        center = [
+          (Math.min(...lats) + Math.max(...lats)) / 2,
+          (Math.min(...lngs) + Math.max(...lngs)) / 2
+        ];
+      }
+
+      const map = L.map('map').setView(center, zoom);
+
+      // Add OpenStreetMap tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Add GPX track as a polyline
+      if (gpxData.trackPoints.length > 0) {
+        const trackLatLngs = gpxData.trackPoints.map(point => [point.lat, point.lng]);
+
+        L.polyline(trackLatLngs, {
+          color: '#3b82f6',
+          weight: 4,
+          opacity: 0.8
+        }).addTo(map);
+
+        // Fit map to track bounds
+        const bounds = L.latLngBounds(trackLatLngs);
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+
+      // Add max speed marker if available
+      if (gpxData.statistics && gpxData.statistics.maxSpeedPoint && gpxData.statistics.maxSpeed > 0) {
+        const maxSpeedMarker = L.marker([gpxData.statistics.maxSpeedPoint.lat, gpxData.statistics.maxSpeedPoint.lng], {
+          icon: L.divIcon({
+            className: 'max-speed-marker',
+            html: `<div class="speed-icon">🏃<span class="speed-value">${gpxData.statistics.maxSpeed.toFixed(1)} mph</span></div>`,
+            iconSize: [100, 40],
+            iconAnchor: [50, 40]
+          })
+        }).addTo(map);
+
+        maxSpeedMarker.bindPopup(`
+          <div style="text-align: center;">
+            <strong>Maximum Speed</strong><br>
+            ${gpxData.statistics.maxSpeed.toFixed(1)} mph
+          </div>
+        `);
+      }
+
+      // Store map reference globally for photo markers
+      window.routeMap = map;
+      window.gpxData = gpxData;
+
+    } catch (error) {
+      console.error('Failed to load GPX data:', error);
+      // Initialize map with default location
+      const map = L.map('map').setView([37.7749, -122.4194], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      window.routeMap = map;
+    }
+  }
+
+  // Load the map when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadMap);
+  } else {
+    loadMap();
+  }
+</script>
+
+<style>
+  .map-container {
+    height: 60vh;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+</style>
+
+<style is:global>
+  .max-speed-marker {
+    background: none !important;
+    border: none !important;
+  }
+
+  .speed-icon {
+    background: rgba(239, 68, 68, 0.95);
+    color: white;
+    border: 2px solid white;
+    border-radius: 20px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .speed-icon:hover {
+    background: rgba(239, 68, 68, 1);
+    transform: scale(1.05);
+  }
+
+  .speed-value {
+    font-size: 11px;
+  }
+</style>

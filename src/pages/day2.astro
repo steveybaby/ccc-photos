@@ -1,0 +1,142 @@
+---
+import Map from '../components/Map.astro';
+import PhotoCarousel from '../components/PhotoCarousel.astro';
+import PhotoLoader from '../components/PhotoLoader.astro';
+import RideStats from '../components/RideStats.astro';
+import DayNavigation from '../components/DayNavigation.astro';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>CCC Day 2 - Fun Finders 2025</title>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<DayNavigation currentDay={2} />
+		<div class="container">
+			<header class="hero">
+				<h1>CCC Day 2</h1>
+				<p class="subtitle">Fun Finders 2025 • September 7, 2025</p>
+				<p class="description">
+					Explore the cycling route and discover photos from our adventure.
+					Click on the camera markers to view photos and videos from each location.
+				</p>
+			</header>
+
+			<main class="main-content">
+				<RideStats />
+				<section class="map-section">
+					<Map />
+				</section>
+			</main>
+		</div>
+
+		<PhotoCarousel />
+		<PhotoLoader />
+
+		<!-- Day 2 specific configuration -->
+		<script>
+			window.dayConfig = {
+				day: 2,
+				gpxFile: '/gpx/CCC_Day_2_2025_Fun_Finders.gpx',
+				photosDir: 'day 2',
+				manifestPath: '/photos-manifest-day2.json'
+			};
+		</script>
+	</body>
+</html>
+
+<style>
+	* {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	html {
+		font-family: 'Inter', system-ui, sans-serif;
+		line-height: 1.6;
+	}
+
+	body {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		min-height: 100vh;
+		color: #333;
+	}
+
+	.container {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	.hero {
+		text-align: center;
+		color: white;
+		margin-bottom: 3rem;
+	}
+
+	.hero h1 {
+		font-size: 3.5rem;
+		font-weight: 700;
+		margin-bottom: 0.5rem;
+		background: linear-gradient(45deg, #fff, #f0f8ff);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.subtitle {
+		font-size: 1.5rem;
+		font-weight: 300;
+		margin-bottom: 1rem;
+		opacity: 0.9;
+	}
+
+	.description {
+		font-size: 1.1rem;
+		max-width: 600px;
+		margin: 0 auto;
+		opacity: 0.8;
+		line-height: 1.8;
+	}
+
+	.main-content {
+		background: rgba(255, 255, 255, 0.95);
+		border-radius: 20px;
+		padding: 2rem;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+		backdrop-filter: blur(10px);
+	}
+
+	.map-section {
+		margin-bottom: 2rem;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 1rem;
+		}
+
+		.hero h1 {
+			font-size: 2.5rem;
+		}
+
+		.subtitle {
+			font-size: 1.2rem;
+		}
+
+		.description {
+			font-size: 1rem;
+		}
+
+		.main-content {
+			padding: 1rem;
+			border-radius: 12px;
+		}
+	}
+</style>
