@@ -155,9 +155,20 @@
   // Load and display GPX data
   async function loadMap() {
     try {
+      // Clear any existing data to prevent race conditions
+      window.gpxData = null;
+      window.routeMap = null;
+      window.routeBounds = null;
+      window.maxSpeedMarker = null;
+
       // Get GPX file from day configuration
       const gpxFile = window.dayConfig?.gpxFile || '/route.gpx';
-      const response = await fetch(gpxFile);
+      const response = await fetch(gpxFile, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       const gpxText = await response.text();
       const gpxData = parseGPX(gpxText);
 

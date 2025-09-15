@@ -321,6 +321,10 @@ const { title } = Astro.props;
     if (window.gpxData && window.gpxData.statistics) {
       updateRideStats();
     } else {
+      // Reset display to loading state while waiting
+      document.getElementById('distance-value').textContent = '--';
+      document.getElementById('elevation-value').textContent = '--';
+      document.getElementById('max-speed-value').textContent = '--';
       setTimeout(checkForGpxData, 500);
     }
   }
