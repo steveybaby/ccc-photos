@@ -5,16 +5,19 @@
 <div class="ride-stats" id="ride-stats">
   <div class="stats-container">
     <div class="stat-item" id="photo-video-stat">
-      <div class="stat-value" id="photo-video-count">--</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="distance-value">--</div>
-      <div class="stat-label">Miles</div>
+      <div class="stat-value" id="photo-count">--</div>
+      <div class="stat-label">Photos</div>
+      <div class="stat-value" id="video-count">--</div>
+      <div class="stat-label">Videos</div>
     </div>
     <div class="stat-item">
       <div class="stat-value" id="elevation-value">--</div>
       <canvas id="elevation-sparkline" width="160" height="30"></canvas>
       <div class="stat-label">Feet Climbed</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="distance-value">--</div>
+      <div class="stat-label">Miles</div>
     </div>
     <div class="stat-item" id="max-speed-stat">
       <div class="stat-value" id="max-speed-value">--</div>
@@ -66,18 +69,13 @@
         videoCount
       });
 
-      const countElement = document.getElementById('photo-video-count');
-      if (photoCount > 0 && videoCount > 0) {
-        countElement.innerHTML = `${photoCount} Photos<br>${videoCount} Videos`;
-      } else if (photoCount > 0) {
-        countElement.textContent = `${photoCount} Photos`;
-      } else if (videoCount > 0) {
-        countElement.textContent = `${videoCount} Videos`;
-      } else {
-        countElement.textContent = '--';
-      }
+      const photoCountElement = document.getElementById('photo-count');
+      const videoCountElement = document.getElementById('video-count');
 
-      console.log('Updated count element to:', countElement.textContent);
+      photoCountElement.textContent = photoCount > 0 ? photoCount : '--';
+      videoCountElement.textContent = videoCount > 0 ? videoCount : '--';
+
+      console.log('Updated counts - Photos:', photoCountElement.textContent, 'Videos:', videoCountElement.textContent);
 
       // Setup click handler to show first photo
       setupPhotoVideoClick(photos);
@@ -357,6 +355,10 @@
     border-radius: 12px;
     color: white;
     transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 140px;
   }
 
   .stat-item:hover {
@@ -382,6 +384,11 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-height: 3rem;
   }
 
   /* Sparkline styling for elevation tile */
@@ -401,6 +408,7 @@
     transform: translateY(-2px) scale(1.02);
     box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
   }
+
 
   .stat-label {
     font-size: 0.9rem;

@@ -4,29 +4,26 @@ const currentDay = Astro.props.currentDay || 1;
 
 // Day information mapping
 const dayInfo = {
-  1: { route: "San Francisco to Santa Cruz", date: "Fri, Sep 6, 2025" },
-  2: { route: "Santa Cruz to Monterey", date: "Sat, Sep 7, 2025" },
-  3: { route: "Monterey to Big Sur", date: "Sun, Sep 8, 2025" },
-  4: { route: "Paso Robles to Cambria", date: "Mon, Sep 9, 2025" },
-  5: { route: "Cambria to Pismo Beach", date: "Tue, Sep 10, 2025" },
-  6: { route: "Pismo Beach to Buellton", date: "Wed, Sep 11, 2025" },
-  7: { route: "Buellton to Ventura", date: "Thu, Sep 12, 2025" },
-  8: { route: "Ventura to Malibu", date: "Fri, Sep 13, 2025" }
+  1: { route: "San Francisco to Santa Cruz", date: "Sat, Sep 7, 2025", miles: "58.7", elevation: "2,143" },
+  2: { route: "Santa Cruz to Monterey", date: "Sun, Sep 8, 2025", miles: "42.3", elevation: "1,876" },
+  3: { route: "Monterey to Big Sur", date: "Mon, Sep 9, 2025", miles: "31.2", elevation: "2,987" },
+  4: { route: "Paso Robles to Cambria", date: "Tue, Sep 10, 2025", miles: "45.1", elevation: "1,543" },
+  5: { route: "Cambria to Pismo Beach", date: "Wed, Sep 11, 2025", miles: "38.9", elevation: "1,234" },
+  6: { route: "Pismo Beach to Buellton", date: "Thu, Sep 12, 2025", miles: "52.4", elevation: "2,087" },
+  7: { route: "Buellton to Ventura", date: "Fri, Sep 13, 2025", miles: "67.8", elevation: "3,156" },
+  8: { route: "Ventura to Malibu", date: "Sat, Sep 14, 2025", miles: "41.6", elevation: "1,789" }
 };
 
 // Generate dynamic title
 const currentDayInfo = dayInfo[currentDay];
 const title = currentDayInfo
-  ? `Fun Finders - CCC Day ${currentDay} - ${currentDayInfo.date} (${currentDayInfo.route})`
+  ? `Day ${currentDay} - ${currentDayInfo.date} (${currentDayInfo.route})`
   : "CCC Fun Finders 2025";
 
 ---
 
 <nav class="day-navigation">
   <div class="nav-container">
-    <div class="nav-logo">
-      <img src="/header_image.png" alt="Fun Finders" class="nav-logo-image" />
-    </div>
     <div class="nav-days">
       {[1, 2, 3, 4, 5, 6, 7, 8].map(day => (
         <a
@@ -43,6 +40,7 @@ const title = currentDayInfo
               <div class="tooltip-day">Day {day}</div>
               <div class="tooltip-route">{dayInfo[day]?.route || 'Route TBD'}</div>
               <div class="tooltip-date">{dayInfo[day]?.date || 'Date TBD'}</div>
+              <div class="tooltip-stats">{dayInfo[day]?.miles || '--'} mi • {dayInfo[day]?.elevation || '--'} ft climbed</div>
             </div>
           </div>
         </a>
@@ -67,22 +65,12 @@ const title = currentDayInfo
     margin: 0 auto;
     padding: 1rem 2rem;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
   }
 
-  .nav-logo {
-    flex-shrink: 0;
-  }
-
-  .nav-logo-image {
-    height: 60px;
-    width: auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
 
   .nav-days {
     display: flex;
@@ -99,7 +87,7 @@ const title = currentDayInfo
     text-decoration: none;
     color: #666;
     background: rgba(255, 255, 255, 0.7);
-    border: 2px solid transparent;
+    border: 2px solid rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease;
     position: relative;
     min-width: 60px;
@@ -108,7 +96,6 @@ const title = currentDayInfo
   .day-link:hover:not(.coming-soon) {
     background: rgba(30, 64, 175, 0.1);
     border-color: rgba(30, 64, 175, 0.3);
-    transform: translateY(-2px);
   }
 
   .day-link.active {
@@ -206,6 +193,14 @@ const title = currentDayInfo
     opacity: 0.8;
   }
 
+  .tooltip-stats {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    color: #60a5fa;
+    font-weight: 600;
+    margin-top: 0.25rem;
+  }
+
   .day-link:hover .tooltip {
     opacity: 1;
     visibility: visible;
@@ -215,12 +210,7 @@ const title = currentDayInfo
   @media (max-width: 768px) {
     .nav-container {
       padding: 1rem;
-      flex-direction: column;
       gap: 1rem;
-    }
-
-    .nav-logo-image {
-      height: 50px;
     }
 
     .nav-days {
