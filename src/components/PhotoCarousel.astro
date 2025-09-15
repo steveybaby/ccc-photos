@@ -211,12 +211,52 @@
         url.searchParams.set('group', this.locationContext.groupIndex.toString());
       }
 
-      // Copy to clipboard
-      navigator.clipboard.writeText(url.toString()).then(() => {
-        // Show feedback
-        const originalIcon = this.copyLinkBtn.querySelector('.copy-icon');
-        const originalText = originalIcon.textContent;
+      const urlString = url.toString();
 
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(urlString).then(() => {
+          this.showCopyFeedback(true);
+        }).catch(() => {
+          this.fallbackCopyToClipboard(urlString);
+        });
+      } else {
+        // Fallback for older browsers or non-HTTPS
+        this.fallbackCopyToClipboard(urlString);
+      }
+    }
+
+    fallbackCopyToClipboard(text) {
+      // Try the older execCommand method
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          this.showCopyFeedback(true);
+        } else {
+          this.showCopyFeedback(false, text);
+        }
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        this.showCopyFeedback(false, text);
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    }
+
+    showCopyFeedback(success, url = null) {
+      const originalIcon = this.copyLinkBtn.querySelector('.copy-icon');
+      const originalText = originalIcon.textContent;
+
+      if (success) {
         originalIcon.textContent = '✓';
         this.copyLinkBtn.style.backgroundColor = '#10b981';
 
@@ -224,11 +264,10 @@
           originalIcon.textContent = originalText;
           this.copyLinkBtn.style.backgroundColor = '';
         }, 2000);
-      }).catch(err => {
-        console.error('Failed to copy link:', err);
-        // Fallback: show the URL in an alert
-        alert('Copy this link:\n' + url.toString());
-      });
+      } else {
+        // Show URL in alert if copying failed
+        alert('Copy this link:\n' + (url || 'Link generation failed'));
+      }
     }
 
     async waitForGPXData(L) {
