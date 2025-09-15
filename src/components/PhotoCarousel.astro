@@ -23,6 +23,9 @@
     <div class="photo-info">
       <div class="photo-counter">
         <span id="photo-counter-text">1 / 1</span>
+        <button id="copy-link-btn" class="copy-link-btn" title="Copy link to this photo">
+          <span class="copy-icon">🔗</span>
+        </button>
       </div>
       <div class="photo-caption" id="photo-caption">
         Photo 1 at Location
@@ -64,6 +67,7 @@
       this.prevLocationBtn = document.getElementById('prev-location');
       this.nextLocationBtn = document.getElementById('next-location');
       this.closeBtn = document.querySelector('.close');
+      this.copyLinkBtn = document.getElementById('copy-link-btn');
 
       this.photos = [];
       this.currentIndex = 0;
@@ -105,6 +109,11 @@
       }
       if (showMinimapBtn) {
         showMinimapBtn.addEventListener('click', () => this.showMinimap());
+      }
+
+      // Copy link event
+      if (this.copyLinkBtn) {
+        this.copyLinkBtn.addEventListener('click', () => this.copyPhotoLink());
       }
     }
 
@@ -151,6 +160,14 @@
       if (minimapPlaceholder) {
         minimapPlaceholder.style.display = 'none';
       }
+
+      // Clean up URL parameters when closing
+      const url = new URL(window.location);
+      if (url.searchParams.has('photo') || url.searchParams.has('group')) {
+        url.searchParams.delete('photo');
+        url.searchParams.delete('group');
+        window.history.replaceState({}, '', url);
+      }
     }
 
     hideMinimap() {
@@ -180,6 +197,38 @@
           }, 100);
         }
       }
+    }
+
+    copyPhotoLink() {
+      const photo = this.photos[this.currentIndex];
+      if (!photo) return;
+
+      // Create URL with photo parameters
+      const url = new URL(window.location);
+      url.searchParams.set('photo', photo.name);
+
+      if (this.locationContext) {
+        url.searchParams.set('group', this.locationContext.groupIndex.toString());
+      }
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(url.toString()).then(() => {
+        // Show feedback
+        const originalIcon = this.copyLinkBtn.querySelector('.copy-icon');
+        const originalText = originalIcon.textContent;
+
+        originalIcon.textContent = '✓';
+        this.copyLinkBtn.style.backgroundColor = '#10b981';
+
+        setTimeout(() => {
+          originalIcon.textContent = originalText;
+          this.copyLinkBtn.style.backgroundColor = '';
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy link:', err);
+        // Fallback: show the URL in an alert
+        alert('Copy this link:\n' + url.toString());
+      });
     }
 
     async waitForGPXData(L) {
@@ -674,6 +723,29 @@
   .photo-counter {
     font-size: 16px;
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .copy-link-btn {
+    background: rgba(59, 130, 246, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 12px;
+  }
+
+  .copy-link-btn:hover {
+    background: rgba(37, 99, 235, 0.9);
+    transform: scale(1.05);
   }
 
   .photo-caption {

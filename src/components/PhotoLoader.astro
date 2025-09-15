@@ -89,6 +89,9 @@
         console.log(`Found ${this.photosWithoutLocation.length} photos without location data`);
         this.addMarkersToMap();
 
+        // Check for photo URL parameters
+        this.checkForPhotoLink();
+
       } catch (error) {
         console.error('Failed to load photos manifest:', error);
         console.log('Falling back to hardcoded photo list...');
@@ -354,6 +357,78 @@
 
         // Add the control to the map
         new NoGPSControl({ position: 'topleft' }).addTo(window.routeMap);
+      }
+    }
+
+    checkForPhotoLink() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const photoName = urlParams.get('photo');
+      const groupIndex = urlParams.get('group');
+
+      if (photoName) {
+        // Find the photo in the groups
+        let foundPhoto = null;
+        let foundGroup = null;
+        let photoIndex = -1;
+
+        // First check the located groups
+        for (let i = 0; i < this.photoGroups.length; i++) {
+          const group = this.photoGroups[i];
+          const index = group.photos.findIndex(p => p.name === photoName);
+          if (index !== -1) {
+            foundPhoto = group.photos[index];
+            foundGroup = group;
+            photoIndex = index;
+            break;
+          }
+        }
+
+        // If not found in located groups, check photos without location
+        if (!foundPhoto && this.photosWithoutLocation.length > 0) {
+          const index = this.photosWithoutLocation.findIndex(p => p.name === photoName);
+          if (index !== -1) {
+            foundPhoto = this.photosWithoutLocation[index];
+            photoIndex = index;
+            // Create a virtual group for photos without location
+            foundGroup = {
+              photos: this.photosWithoutLocation,
+              locationName: "Photos without location"
+            };
+          }
+        }
+
+        if (foundPhoto) {
+          // Create complete groups array
+          const completeGroups = [...this.photoGroups];
+          if (this.photosWithoutLocation.length > 0) {
+            completeGroups.push({
+              photos: this.photosWithoutLocation,
+              locationName: "Photos without location"
+            });
+          }
+
+          // Determine which group this is
+          let contextGroupIndex = 0;
+          if (foundGroup.locationName === "Photos without location") {
+            contextGroupIndex = this.photoGroups.length;
+          } else {
+            contextGroupIndex = this.photoGroups.findIndex(g => g === foundGroup);
+          }
+
+          // Wait a bit for the carousel to be ready, then open it
+          setTimeout(() => {
+            if (window.photoCarousel) {
+              window.photoCarousel.open(foundGroup.photos, photoIndex, {
+                locationName: foundGroup.locationName,
+                groupIndex: contextGroupIndex,
+                totalGroups: completeGroups.length,
+                allGroups: completeGroups
+              });
+            }
+          }, 1000);
+        } else {
+          console.warn(`Photo not found: ${photoName}`);
+        }
       }
     }
   }
