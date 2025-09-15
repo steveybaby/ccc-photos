@@ -60,9 +60,11 @@
 
     // Get elevation data from track points
     const elevations = [];
+    const elevationTrackPoints = [];
     trackPoints.forEach(point => {
       if (point.elevation !== null && point.elevation !== undefined) {
         elevations.push(point.elevation * 3.28084); // Convert meters to feet
+        elevationTrackPoints.push(point);
       }
     });
 
@@ -72,9 +74,18 @@
     const maxPoints = 80; // Maximum points to draw for smooth sparkline
     const step = Math.max(1, Math.floor(elevations.length / maxPoints));
     const sampledElevations = [];
+    const sampledTrackPoints = [];
     for (let i = 0; i < elevations.length; i += step) {
       sampledElevations.push(elevations[i]);
+      sampledTrackPoints.push(elevationTrackPoints[i]);
     }
+
+    // Store sampled data for hover functionality
+    window.sparklineData = {
+      elevations: sampledElevations,
+      trackPoints: sampledTrackPoints,
+      canvas: canvas
+    };
 
     // Canvas dimensions
     const width = canvas.width;
@@ -128,6 +139,61 @@
     ctx.lineTo(points[0].x, height);
     ctx.closePath();
     ctx.fill();
+
+    // Add hover functionality
+    setupSparklineHover(canvas, sampledTrackPoints, width, padding);
+  }
+
+  // Setup hover functionality for elevation sparkline
+  function setupSparklineHover(canvas, sampledTrackPoints, width, padding) {
+    let hoverMarker = null;
+
+    canvas.addEventListener('mouseenter', () => {
+      canvas.style.cursor = 'crosshair';
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      canvas.style.cursor = 'default';
+      // Remove bicycle marker from map
+      if (hoverMarker && window.routeMap) {
+        window.routeMap.removeLayer(hoverMarker);
+        hoverMarker = null;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (event) => {
+      if (!window.routeMap || sampledTrackPoints.length === 0) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+
+      // Calculate which track point corresponds to this X position
+      const relativeX = (mouseX - padding) / (width - 2 * padding);
+      const trackIndex = Math.round(relativeX * (sampledTrackPoints.length - 1));
+
+      if (trackIndex >= 0 && trackIndex < sampledTrackPoints.length) {
+        const trackPoint = sampledTrackPoints[trackIndex];
+
+        // Remove previous marker
+        if (hoverMarker) {
+          window.routeMap.removeLayer(hoverMarker);
+        }
+
+        // Create bicycle icon marker
+        const bicycleIcon = L.divIcon({
+          className: 'bicycle-marker',
+          html: `<div class="bicycle-icon">🚴</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        // Add new marker at track point location
+        hoverMarker = L.marker([trackPoint.lat, trackPoint.lng], {
+          icon: bicycleIcon,
+          zIndexOffset: 1000 // Make sure it appears above other markers
+        }).addTo(window.routeMap);
+      }
+    });
   }
 
   // Check for GPX data periodically
@@ -244,5 +310,33 @@
     .stats-container {
       grid-template-columns: 1fr;
     }
+  }
+</style>
+
+<style is:global>
+  .bicycle-marker {
+    background: none !important;
+    border: none !important;
+  }
+
+  .bicycle-icon {
+    background: rgba(59, 130, 246, 0.95);
+    border: 2px solid white;
+    border-radius: 50%;
+    padding: 4px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: crosshair;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+  }
+
+  .bicycle-icon:hover {
+    background: rgba(59, 130, 246, 1);
+    transform: scale(1.1);
   }
 </style>
