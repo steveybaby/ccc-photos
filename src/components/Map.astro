@@ -10,6 +10,9 @@
   // Import Leaflet
   const L = await import('https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js');
 
+  // Make Leaflet available globally for other components
+  window.L = L;
+
   // Parse GPX function with statistics
   function calculateDistance(lat1, lng1, lat2, lng2) {
     const R = 3959; // Earth's radius in miles

@@ -162,7 +162,7 @@
     });
 
     canvas.addEventListener('mousemove', (event) => {
-      if (!window.routeMap || sampledTrackPoints.length === 0) return;
+      if (!window.routeMap || sampledTrackPoints.length === 0 || !window.L) return;
 
       const rect = canvas.getBoundingClientRect();
       const mouseX = event.clientX - rect.left;
@@ -180,7 +180,7 @@
         }
 
         // Create bicycle icon marker
-        const bicycleIcon = L.divIcon({
+        const bicycleIcon = window.L.divIcon({
           className: 'bicycle-marker',
           html: `<div class="bicycle-icon">🚴</div>`,
           iconSize: [32, 32],
@@ -188,7 +188,7 @@
         });
 
         // Add new marker at track point location
-        hoverMarker = L.marker([trackPoint.lat, trackPoint.lng], {
+        hoverMarker = window.L.marker([trackPoint.lat, trackPoint.lng], {
           icon: bicycleIcon,
           zIndexOffset: 1000 // Make sure it appears above other markers
         }).addTo(window.routeMap);
