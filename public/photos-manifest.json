@@ -632,7 +632,7 @@
   ],
   "groups": [
     {
-      "id": "de0466db-d814-4c25-a86a-932411ef0318",
+      "id": "dc0f7c06-bc36-4d7d-9953-d4ddb26f1dc3",
       "lat": 37.66622777777778,
       "lng": -122.49506944444444,
       "photos": [
@@ -683,7 +683,7 @@
       "locationName": "Westline Drive, Daly City"
     },
     {
-      "id": "bd6ef12b-bf39-4fa7-8d05-7c3748cdfc18",
+      "id": "b9069957-1037-4dc6-b4e8-34602cc3f708",
       "lat": 37.80878935185185,
       "lng": -122.41490277777778,
       "photos": [
@@ -776,7 +776,7 @@
       "locationName": "Fisherman's Wharf, San Francisco"
     },
     {
-      "id": "b078050d-05c1-4bd1-92d7-d9b6c1e7e1ba",
+      "id": "65bb3002-6c21-4ba6-93b5-c6d67057a61f",
       "lat": 37.239651388888895,
       "lng": -122.41732407407409,
       "photos": [
@@ -869,7 +869,7 @@
       "locationName": "Cabrillo Highway, San Mateo County"
     },
     {
-      "id": "98f95e66-de50-49a3-afbe-85fd1e4f3c57",
+      "id": "040a1e8f-afd0-4cd2-abc3-461b14b27f52",
       "lat": 37.31382962962963,
       "lng": -122.40384722222223,
       "photos": [
@@ -920,7 +920,7 @@
       "locationName": "Cabrillo Highway South, San Mateo County"
     },
     {
-      "id": "6fceed3b-e4f2-43b8-bb3a-94df348f2945",
+      "id": "d0159333-638c-434b-a489-ed6a6e3010a0",
       "lat": 37.807425925925926,
       "lng": -122.47238425925927,
       "photos": [
@@ -971,7 +971,7 @@
       "locationName": "Lincoln Boulevard, San Francisco"
     },
     {
-      "id": "733bd212-0d02-4ef1-ac7a-196bed518081",
+      "id": "2610ace4-5436-4a91-aea2-03cd5f380395",
       "lat": 37.807306481481476,
       "lng": -122.42944166666666,
       "photos": [
@@ -1022,7 +1022,7 @@
       "locationName": "Funston Road, San Francisco"
     },
     {
-      "id": "29612a2c-f4be-44c3-bef8-4176a0ff1351",
+      "id": "44b7f4e8-9b55-43d7-b78f-68bc7409f89b",
       "lat": 37.78545833333333,
       "lng": -122.49675833333333,
       "photos": [
@@ -1059,7 +1059,7 @@
       "locationName": "El Camino del Mar, San Francisco"
     },
     {
-      "id": "d9ad502d-b2cb-41d8-a4a0-ff6337aa2c26",
+      "id": "858d27fa-9fea-4c02-9efd-7219c27f81e8",
       "lat": 37.50195277777778,
       "lng": -122.47128333333333,
       "photos": [
@@ -1082,7 +1082,7 @@
       "locationName": "Obispo Road, El Granada"
     },
     {
-      "id": "b6711c22-e2a5-4937-a266-45f181c1da89",
+      "id": "e2b9b670-1afa-4bca-9b2c-e7c64f494ed3",
       "lat": 37.29363611111111,
       "lng": -122.40644722222223,
       "photos": [
@@ -1105,7 +1105,7 @@
       "locationName": "Cabrillo Highway South, San Mateo County"
     },
     {
-      "id": "2d197b07-e776-47f0-a1a0-401e8d6caf13",
+      "id": "fc1c743c-da1a-46b7-b1b8-b704d9c62c3a",
       "lat": 37.182674999999996,
       "lng": -122.39354722222222,
       "photos": [
@@ -1128,7 +1128,7 @@
       "locationName": "Station Road, San Mateo County"
     },
     {
-      "id": "72b59574-8728-4043-af17-39877c87c519",
+      "id": "e993ee02-9ef6-4627-a563-d37853180994",
       "lat": 37.166468055555555,
       "lng": -122.36195277777777,
       "photos": [
@@ -1165,7 +1165,7 @@
       "locationName": "Cabrillo Highway, San Mateo County"
     },
     {
-      "id": "1c9b219e-6ace-4a00-a4e4-f2e92528f607",
+      "id": "87afc616-416b-426a-bc21-1c25b496ae6d",
       "lat": 37.069725000000005,
       "lng": -122.2573,
       "photos": [
@@ -1188,7 +1188,7 @@
       "locationName": "Cabrillo Highway, Santa Cruz County"
     },
     {
-      "id": "d9d83d18-db68-4da6-8699-e8f107944f12",
+      "id": "59e15771-16c3-4274-b8b3-38a819199e55",
       "lat": 37.12767916666667,
       "lng": -122.310025,
       "photos": [
@@ -1225,6 +1225,6 @@
       "locationName": "Cabrillo Highway, San Mateo County"
     }
   ],
-  "lastUpdated": "2025-09-15T13:27:03.480Z",
-  "version": 2
+  "lastUpdated": "2025-09-15T13:38:20.524Z",
+  "version": 3
 }

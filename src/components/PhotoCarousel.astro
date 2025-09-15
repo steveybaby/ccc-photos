@@ -36,7 +36,17 @@
 
 <!-- Mini-map positioned separately to avoid flashing -->
 <div class="mini-map-container" id="mini-map-container">
+  <button id="minimap-toggle" class="minimap-toggle-btn" title="Hide minimap">
+    <span class="minimap-toggle-icon">👁️</span>
+  </button>
   <div id="mini-map"></div>
+</div>
+
+<!-- Minimap placeholder when hidden -->
+<div class="minimap-placeholder" id="minimap-placeholder">
+  <button id="show-minimap-btn" class="show-minimap-btn" title="Show minimap">
+    🗺️
+  </button>
 </div>
 
 <script>
@@ -60,6 +70,7 @@
       this.locationContext = null;
       this.miniMap = null;
       this.currentMarker = null;
+      this.minimapHidden = false;
 
       this.bindEvents();
     }
@@ -84,6 +95,17 @@
           if (e.key === 'ArrowRight') this.next();
         }
       });
+
+      // Minimap toggle events
+      const minimapToggle = document.getElementById('minimap-toggle');
+      const showMinimapBtn = document.getElementById('show-minimap-btn');
+
+      if (minimapToggle) {
+        minimapToggle.addEventListener('click', () => this.hideMinimap());
+      }
+      if (showMinimapBtn) {
+        showMinimapBtn.addEventListener('click', () => this.showMinimap());
+      }
     }
 
     async open(photos, startIndex = 0, locationContext = null) {
@@ -96,8 +118,16 @@
 
       // Show and initialize mini-map on non-mobile devices
       const miniMapContainer = document.getElementById('mini-map-container');
-      if (window.innerWidth > 768 && miniMapContainer) {
-        miniMapContainer.style.display = 'block';
+      const minimapPlaceholder = document.getElementById('minimap-placeholder');
+      if (window.innerWidth > 768 && miniMapContainer && minimapPlaceholder) {
+        if (this.minimapHidden) {
+          miniMapContainer.style.display = 'none';
+          minimapPlaceholder.style.display = 'flex';
+        } else {
+          miniMapContainer.style.display = 'block';
+          minimapPlaceholder.style.display = 'none';
+        }
+
         if (!this.miniMap) {
           setTimeout(async () => {
             await this.initMiniMap();
@@ -114,8 +144,41 @@
 
       // Hide mini-map but don't destroy it to avoid recreation overhead
       const miniMapContainer = document.getElementById('mini-map-container');
+      const minimapPlaceholder = document.getElementById('minimap-placeholder');
       if (miniMapContainer) {
         miniMapContainer.style.display = 'none';
+      }
+      if (minimapPlaceholder) {
+        minimapPlaceholder.style.display = 'none';
+      }
+    }
+
+    hideMinimap() {
+      const miniMapContainer = document.getElementById('mini-map-container');
+      const minimapPlaceholder = document.getElementById('minimap-placeholder');
+
+      if (miniMapContainer && minimapPlaceholder) {
+        miniMapContainer.style.display = 'none';
+        minimapPlaceholder.style.display = 'flex';
+        this.minimapHidden = true;
+      }
+    }
+
+    showMinimap() {
+      const miniMapContainer = document.getElementById('mini-map-container');
+      const minimapPlaceholder = document.getElementById('minimap-placeholder');
+
+      if (miniMapContainer && minimapPlaceholder) {
+        miniMapContainer.style.display = 'block';
+        minimapPlaceholder.style.display = 'none';
+        this.minimapHidden = false;
+
+        // Trigger map resize after showing
+        if (this.miniMap) {
+          setTimeout(() => {
+            this.miniMap.invalidateSize();
+          }, 100);
+        }
       }
     }
 
@@ -445,6 +508,65 @@
     z-index: 1001;
     display: none;
     background: white;
+  }
+
+  .minimap-toggle-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1002;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .minimap-toggle-btn:hover {
+    background: rgba(248, 250, 252, 0.95);
+    transform: scale(1.05);
+  }
+
+  .minimap-toggle-icon {
+    font-size: 12px;
+  }
+
+  .minimap-placeholder {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    display: none;
+  }
+
+  .show-minimap-btn {
+    background: rgba(59, 130, 246, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 12px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    width: 48px;
+    height: 48px;
+  }
+
+  .show-minimap-btn:hover {
+    background: rgba(37, 99, 235, 0.95);
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6);
   }
 
   #mini-map {
