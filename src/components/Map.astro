@@ -78,11 +78,44 @@
         maxElevation = Math.max(maxElevation, curr.elevation);
       }
 
-      // Calculate speed
+      // Calculate instantaneous speed (for later smoothing)
       const speed = calculateSpeed(segmentDistance, prev.time, curr.time);
-      if (speed > maxSpeed && speed < 100) { // Filter out unrealistic speeds
-        maxSpeed = speed;
-        maxSpeedPoint = curr;
+      trackPoints[i].speed = speed;
+    }
+
+    // Calculate smoothed max speed using a moving average approach
+    // This is more similar to how Strava calculates max speed
+    const smoothingWindow = 5; // Use 5-point moving average
+    maxSpeed = 0;
+    maxSpeedPoint = null;
+
+    for (let i = smoothingWindow; i < trackPoints.length - smoothingWindow; i++) {
+      // Calculate average speed over the smoothing window
+      let totalDistance = 0;
+      let totalTime = 0;
+
+      for (let j = i - Math.floor(smoothingWindow/2); j < i + Math.floor(smoothingWindow/2); j++) {
+        if (j > 0 && j < trackPoints.length && trackPoints[j].time && trackPoints[j-1].time) {
+          const segmentDist = calculateDistance(
+            trackPoints[j-1].lat, trackPoints[j-1].lng,
+            trackPoints[j].lat, trackPoints[j].lng
+          );
+          const segmentTime = (new Date(trackPoints[j].time) - new Date(trackPoints[j-1].time)) / 1000 / 3600;
+
+          if (segmentTime > 0) {
+            totalDistance += segmentDist;
+            totalTime += segmentTime;
+          }
+        }
+      }
+
+      if (totalTime > 0) {
+        const smoothedSpeed = totalDistance / totalTime;
+        // Apply more conservative filtering (max reasonable cycling speed ~60 mph)
+        if (smoothedSpeed > maxSpeed && smoothedSpeed < 60) {
+          maxSpeed = smoothedSpeed;
+          maxSpeedPoint = trackPoints[i];
+        }
       }
     }
 
