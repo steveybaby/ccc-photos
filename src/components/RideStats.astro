@@ -1,8 +1,14 @@
 ---
 // Ride statistics component
+const { title } = Astro.props;
 ---
 
 <div class="ride-stats" id="ride-stats">
+  {title && (
+    <div class="stats-header">
+      <h1 class="stats-title">{title}</h1>
+    </div>
+  )}
   <div class="stats-container">
     <div class="stat-item" id="photo-video-stat">
       <div class="stat-value" id="photo-count">--</div>
@@ -12,7 +18,7 @@
     </div>
     <div class="stat-item">
       <div class="stat-value" id="elevation-value">--</div>
-      <canvas id="elevation-sparkline" width="160" height="30"></canvas>
+      <canvas id="elevation-sparkline"></canvas>
       <div class="stat-label">Feet Climbed</div>
     </div>
     <div class="stat-item">
@@ -155,6 +161,12 @@
       trackPoints: sampledTrackPoints,
       canvas: canvas
     };
+
+    // Set canvas size dynamically based on container width
+    const containerWidth = canvas.parentElement.clientWidth - 32; // Account for padding
+    const canvasHeight = 30;
+    canvas.width = Math.max(containerWidth, 160); // Minimum 160px width
+    canvas.height = canvasHeight;
 
     // Canvas dimensions
     const width = canvas.width;
@@ -334,12 +346,29 @@
 
 <style>
   .ride-stats {
-    margin: 2rem 0;
+    margin: 0.5rem 0 2rem 0;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 16px;
     padding: 1.5rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
+  }
+
+  .stats-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    padding: 1rem 2rem;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    display: inline-block;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
   }
 
   .stats-container {
@@ -350,7 +379,7 @@
 
   .stat-item {
     text-align: center;
-    padding: 1rem;
+    padding: 0.75rem;
     background: linear-gradient(135deg, #1e40af, #2563eb);
     border-radius: 12px;
     color: white;
@@ -358,7 +387,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 140px;
+    min-height: 100px;
   }
 
   .stat-item:hover {
@@ -376,10 +405,10 @@
   }
 
   .stat-value {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     background: linear-gradient(45deg, #fff, #f0f8ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -388,7 +417,6 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    min-height: 3rem;
   }
 
   /* Sparkline styling for elevation tile */
@@ -396,6 +424,9 @@
     margin: 0.5rem 0;
     border-radius: 4px;
     opacity: 0.9;
+    width: 100%;
+    height: 30px;
+    max-width: 100%;
   }
 
   /* Photo/video tile specific styling */
@@ -411,7 +442,7 @@
 
 
   .stat-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
     opacity: 0.9;
     text-transform: uppercase;
@@ -437,13 +468,14 @@
       font-size: 2rem;
     }
 
-    #elevation-sparkline {
-      width: 120px;
-      height: 25px;
-    }
 
     .stat-label {
       font-size: 0.8rem;
+    }
+
+    .stats-title {
+      font-size: 1.2rem;
+      padding: 0.75rem 1.5rem;
     }
   }
 

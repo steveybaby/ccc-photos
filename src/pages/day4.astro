@@ -36,12 +36,8 @@ const pageTitle = currentDayInfo
 	<body>
 		<DayNavigation currentDay={4} />
 		<div class="container">
-			<header class="hero">
-				<h1>{pageTitle}</h1>
-			</header>
-
 			<main class="main-content">
-				<RideStats />
+				<RideStats title={pageTitle} />
 				<section class="map-section">
 					<Map />
 				</section>
@@ -87,7 +83,7 @@ background-attachment: fixed;
 	.container {
 		max-width: 1200px;
 		margin: 0 auto;
-		padding: 1rem;
+		padding: 0.5rem 1rem;
 	}
 
 	.hero {
@@ -128,7 +124,7 @@ background-attachment: fixed;
 	.main-content {
 		background: transparent;
 		border-radius: 20px;
-		padding: 1rem;
+		padding: 0.5rem 1rem;
 		box-shadow: none;
 		backdrop-filter: none;
 	}
@@ -139,7 +135,7 @@ background-attachment: fixed;
 
 	@media (max-width: 768px) {
 		.container {
-			padding: 1rem;
+			padding: 0.5rem 1rem;
 		}
 
 		.hero h1 {
@@ -155,7 +151,7 @@ background-attachment: fixed;
 		}
 
 		.main-content {
-			padding: 1rem;
+			padding: 0.5rem 1rem;
 			border-radius: 12px;
 		}
 	}

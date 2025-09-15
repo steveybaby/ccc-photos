@@ -36,12 +36,8 @@ const pageTitle = currentDayInfo
 	<body>
 		<DayNavigation currentDay={1} />
 		<div class="container">
-			<header class="hero">
-				<h1>{pageTitle}</h1>
-			</header>
-
 			<main class="main-content">
-				<RideStats />
+				<RideStats title={pageTitle} />
 				<section class="map-section">
 					<Map />
 				</section>
@@ -91,7 +87,7 @@ const pageTitle = currentDayInfo
 	.container {
 		max-width: 1200px;
 		margin: 0 auto;
-		padding: 1rem;
+		padding: 0.5rem 1rem;
 	}
 
 	.hero {
@@ -130,7 +126,7 @@ const pageTitle = currentDayInfo
 	.main-content {
 		background: transparent;
 		border-radius: 20px;
-		padding: 1rem;
+		padding: 0.5rem 1rem;
 		box-shadow: none;
 		backdrop-filter: none;
 	}
@@ -141,7 +137,7 @@ const pageTitle = currentDayInfo
 
 	@media (max-width: 768px) {
 		.container {
-			padding: 1rem;
+			padding: 0.5rem 1rem;
 		}
 
 		.hero h1 {
@@ -157,7 +153,7 @@ const pageTitle = currentDayInfo
 		}
 
 		.main-content {
-			padding: 1rem;
+			padding: 0.5rem 1rem;
 			border-radius: 12px;
 		}
 	}

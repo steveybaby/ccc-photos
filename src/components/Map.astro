@@ -255,26 +255,66 @@
     }
   }
 
+  // Function to calculate optimal map height
+  function calculateMapHeight() {
+    const viewportHeight = window.innerHeight;
+    const mapContainer = document.querySelector('.map-container');
+    if (!mapContainer) return;
+
+    // Get heights of elements above the map
+    const nav = document.querySelector('.day-navigation') || { offsetHeight: 0 };
+    const hero = document.querySelector('.hero') || { offsetHeight: 0 };
+    const rideStats = document.querySelector('.ride-stats') || { offsetHeight: 0 };
+
+    // Add some padding/margin buffer
+    const buffer = 40;
+    const usedHeight = nav.offsetHeight + hero.offsetHeight + rideStats.offsetHeight + buffer;
+
+    // Calculate remaining height, but ensure minimum height
+    const remainingHeight = Math.max(300, viewportHeight - usedHeight);
+
+    mapContainer.style.height = `${remainingHeight}px`;
+
+    // Invalidate map size after height change
+    if (window.routeMap) {
+      setTimeout(() => {
+        window.routeMap.invalidateSize();
+        // Re-fit bounds if available
+        if (window.routeBounds) {
+          window.routeMap.fitBounds(window.routeBounds, { padding: [20, 20] });
+        }
+      }, 100);
+    }
+  }
+
   // Load the map when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       loadMap();
       setupResetButton();
+      // Calculate initial height after components load
+      setTimeout(calculateMapHeight, 500);
     });
   } else {
     loadMap();
     setupResetButton();
+    // Calculate initial height after components load
+    setTimeout(calculateMapHeight, 500);
   }
+
+  // Recalculate on window resize
+  window.addEventListener('resize', calculateMapHeight);
 </script>
 
 <style>
   .map-container {
-    height: 60vh;
+    height: 60vh; /* Initial fallback height */
     width: 100%;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     position: relative;
+    transition: height 0.3s ease;
   }
 
   .reset-map-btn {
