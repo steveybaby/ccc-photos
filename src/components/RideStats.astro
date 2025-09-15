@@ -50,22 +50,20 @@
   }
 
   function drawElevationSparkline() {
-    if (!window.gpxData || !window.gpxData.tracks || !window.gpxData.tracks[0]) return;
+    if (!window.gpxData || !window.gpxData.trackPoints) return;
 
     const canvas = document.getElementById('elevation-sparkline');
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const track = window.gpxData.tracks[0];
+    const trackPoints = window.gpxData.trackPoints;
 
     // Get elevation data from track points
     const elevations = [];
-    track.forEach(segment => {
-      segment.forEach(point => {
-        if (point.ele !== undefined) {
-          elevations.push(point.ele * 3.28084); // Convert meters to feet
-        }
-      });
+    trackPoints.forEach(point => {
+      if (point.elevation !== null && point.elevation !== undefined) {
+        elevations.push(point.elevation * 3.28084); // Convert meters to feet
+      }
     });
 
     if (elevations.length === 0) return;

@@ -209,6 +209,10 @@
 
       // Store map reference globally for photo markers
       window.routeMap = map;
+      // Store track lat/lngs for minimap use
+      if (gpxData.trackPoints.length > 0) {
+        gpxData.trackLatLngs = gpxData.trackPoints.map(point => [point.lat, point.lng]);
+      }
       window.gpxData = gpxData;
 
     } catch (error) {
