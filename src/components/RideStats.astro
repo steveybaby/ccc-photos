@@ -384,21 +384,21 @@ const { title } = Astro.props;
 
   .stats-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
   }
 
   .stat-item {
     text-align: center;
-    padding: 0.75rem;
+    padding: 0.5rem;
     background: linear-gradient(135deg, #1e40af, #2563eb);
-    border-radius: 12px;
+    border-radius: 10px;
     color: white;
     transition: transform 0.3s ease;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 100px;
+    min-height: 75px;
     border: none;
   }
 
@@ -417,10 +417,10 @@ const { title } = Astro.props;
   }
 
   .stat-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.125rem;
     background: linear-gradient(45deg, #fff, #f0f8ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

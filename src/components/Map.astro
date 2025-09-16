@@ -7,6 +7,11 @@
     <span class="reset-icon">⌂</span>
     <span class="reset-label">Reset</span>
   </button>
+  <div id="theme-selector" class="theme-selector">
+    <button id="theme-toggle" class="theme-btn" title="Change map theme">
+      <span class="theme-icon">🗺️</span>
+    </button>
+  </div>
 </div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -188,10 +193,33 @@
 
       const map = L.map('map').setView(center, zoom);
 
-      // Add OpenStreetMap tile layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+      // Define available tile layers
+      const tileLayers = {
+        'openstreetmap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }),
+        'cartodb-light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap contributors, © CartoDB'
+        }),
+        'cartodb-dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap contributors, © CartoDB'
+        }),
+        'terrain': L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+          attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+          subdomains: 'abcd'
+        }),
+        'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        })
+      };
+
+      // Add default tile layer
+      const defaultTheme = localStorage.getItem('mapTheme') || 'satellite';
+      tileLayers[defaultTheme].addTo(map);
+
+      // Store reference for theme switching
+      window.currentTileLayer = tileLayers[defaultTheme];
+      window.tileLayers = tileLayers;
 
       // Add GPX track as a polyline
       if (gpxData.trackPoints.length > 0) {
@@ -248,9 +276,34 @@
       console.error('Failed to load GPX data:', error);
       // Initialize map with default location
       const map = L.map('map').setView([37.7749, -122.4194], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+
+      // Define available tile layers
+      const tileLayers = {
+        'openstreetmap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }),
+        'cartodb-light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap contributors, © CartoDB'
+        }),
+        'cartodb-dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap contributors, © CartoDB'
+        }),
+        'terrain': L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+          attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+          subdomains: 'abcd'
+        }),
+        'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        })
+      };
+
+      // Add default tile layer
+      const defaultTheme = localStorage.getItem('mapTheme') || 'satellite';
+      tileLayers[defaultTheme].addTo(map);
+
+      // Store reference for theme switching
+      window.currentTileLayer = tileLayers[defaultTheme];
+      window.tileLayers = tileLayers;
       window.routeMap = map;
     }
   }
@@ -264,6 +317,45 @@
           window.routeMap.fitBounds(window.routeBounds, { padding: [20, 20] });
         }
       });
+    }
+  }
+
+  // Setup theme selector functionality as simple toggle
+  function setupThemeSelector() {
+    const themeToggle = document.getElementById('theme-toggle');
+
+    if (!themeToggle) return;
+
+    // Toggle between satellite and openstreetmap
+    themeToggle.addEventListener('click', () => {
+      if (window.routeMap && window.tileLayers && window.currentTileLayer) {
+        // Get current theme
+        const currentTheme = localStorage.getItem('mapTheme') || 'satellite';
+        const newTheme = currentTheme === 'satellite' ? 'openstreetmap' : 'satellite';
+
+        // Remove current tile layer
+        window.routeMap.removeLayer(window.currentTileLayer);
+
+        // Add new tile layer
+        window.currentTileLayer = window.tileLayers[newTheme];
+        window.currentTileLayer.addTo(window.routeMap);
+
+        // Save theme preference
+        localStorage.setItem('mapTheme', newTheme);
+
+        // Update button icon based on current theme
+        const themeIcon = themeToggle.querySelector('.theme-icon');
+        if (themeIcon) {
+          themeIcon.textContent = newTheme === 'satellite' ? '🛰️' : '🗺️';
+        }
+      }
+    });
+
+    // Set initial icon based on saved theme
+    const savedTheme = localStorage.getItem('mapTheme') || 'satellite';
+    const themeIcon = themeToggle.querySelector('.theme-icon');
+    if (themeIcon) {
+      themeIcon.textContent = savedTheme === 'satellite' ? '🛰️' : '🗺️';
     }
   }
 
@@ -304,12 +396,14 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadMap();
       setupResetButton();
+      setupThemeSelector();
       // Calculate initial height after components load
       setTimeout(calculateMapHeight, 500);
     });
   } else {
     loadMap();
     setupResetButton();
+    setupThemeSelector();
     // Calculate initial height after components load
     setTimeout(calculateMapHeight, 500);
   }
@@ -331,7 +425,7 @@
 
   .reset-map-btn {
     position: absolute;
-    top: 10px;
+    top: 60px;
     right: 10px;
     z-index: 1000;
     background: rgba(255, 255, 255, 0.95);
@@ -378,6 +472,49 @@
   .reset-map-btn:hover .reset-label {
     color: #3b82f6;
   }
+
+  .theme-selector {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+  }
+
+  .theme-btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .theme-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .theme-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-icon {
+    color: #374151;
+    line-height: 1;
+  }
+
+  .theme-btn:hover .theme-icon {
+    color: #3b82f6;
+  }
+
 </style>
 
 <style is:global>
