@@ -17,6 +17,9 @@
       <button class="nav-btn prev-btn" id="prev-btn">&#8249;</button>
       <div class="carousel-track">
         <div id="carousel-content"></div>
+        <!-- Mobile touch zones -->
+        <div class="mobile-touch-zone prev-touch-zone" id="prev-touch-zone"></div>
+        <div class="mobile-touch-zone next-touch-zone" id="next-touch-zone"></div>
       </div>
       <button class="nav-btn next-btn" id="next-btn">&#8250;</button>
     </div>
@@ -68,6 +71,8 @@
       this.nextLocationBtn = document.getElementById('next-location');
       this.closeBtn = document.querySelector('.close');
       this.copyLinkBtn = document.getElementById('copy-link-btn');
+      this.prevTouchZone = document.getElementById('prev-touch-zone');
+      this.nextTouchZone = document.getElementById('next-touch-zone');
 
       this.photos = [];
       this.currentIndex = 0;
@@ -106,6 +111,22 @@
       this.nextBtn.addEventListener('click', () => this.next());
       this.prevLocationBtn.addEventListener('click', () => this.prevLocation());
       this.nextLocationBtn.addEventListener('click', () => this.nextLocation());
+
+      // Mobile touch zones for easier navigation
+      if (this.prevTouchZone) {
+        this.prevTouchZone.addEventListener('click', () => this.prev());
+        this.prevTouchZone.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          this.prev();
+        });
+      }
+      if (this.nextTouchZone) {
+        this.nextTouchZone.addEventListener('click', () => this.next());
+        this.nextTouchZone.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          this.next();
+        });
+      }
 
       // Close on outside click
       this.modal.addEventListener('click', (e) => {
@@ -604,6 +625,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+  }
+
+  .mobile-touch-zone {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    z-index: 999;
+    cursor: pointer;
+    display: none; /* Hidden by default, shown on mobile */
+  }
+
+  .prev-touch-zone {
+    left: 0;
+  }
+
+  .next-touch-zone {
+    right: 0;
   }
 
   .mini-map-container {
@@ -912,6 +952,11 @@
     #carousel-content video {
       max-width: 85vw;
       max-height: 60vh;
+    }
+
+    /* Show mobile touch zones on small screens */
+    .mobile-touch-zone {
+      display: block;
     }
   }
 </style>
