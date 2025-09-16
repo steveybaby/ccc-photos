@@ -5,8 +5,8 @@ const currentDay = Astro.props.currentDay || 1;
 // Day information mapping with GPX file paths for dynamic loading
 const dayInfo = {
   1: { route: "San Francisco to Santa Cruz", date: "Sat, Sep 7, 2025", gpxFile: "/gpx/CCC_Day_1_fun_finders_2025.gpx" },
-  2: { route: "Santa Cruz to Monterey", date: "Sun, Sep 8, 2025", gpxFile: "/gpx/CCC_Day_2_Santa_Cruz_to_Monterey.gpx" },
-  3: { route: "Monterey to Big Sur", date: "Mon, Sep 9, 2025", gpxFile: "/gpx/CCC_Day_3_Monterey_to_Big_Sur.gpx" },
+  2: { route: "Santa Cruz to Monterey", date: "Sun, Sep 8, 2025", gpxFile: "/gpx/CCC_Day_2_2025_Fun_Finders.gpx" },
+  3: { route: "Monterey to Big Sur", date: "Mon, Sep 9, 2025", gpxFile: "/gpx/CCC_day_3_Monterey_to_Big_Sur.gpx" },
   4: { route: "Paso Robles to Cambria", date: "Tue, Sep 10, 2025", gpxFile: "/gpx/CCC_Day_4_Paso_Robles_to_Cambria.gpx" },
   5: { route: "Cambria to Pismo Beach", date: "Wed, Sep 11, 2025", gpxFile: "/gpx/CCC_Day_5_Cambria_to_Pismo_Beach.gpx" },
   6: { route: "Pismo Beach to Buellton", date: "Thu, Sep 12, 2025", gpxFile: "/gpx/CCC_Day_6_Pismo_Beach_to_Buellton.gpx" },
@@ -317,8 +317,8 @@ const title = currentDayInfo
   // Day info with GPX files
   const dayGpxFiles = {
     1: "/gpx/CCC_Day_1_fun_finders_2025.gpx",
-    2: "/gpx/CCC_Day_2_Santa_Cruz_to_Monterey.gpx",
-    3: "/gpx/CCC_Day_3_Monterey_to_Big_Sur.gpx",
+    2: "/gpx/CCC_Day_2_2025_Fun_Finders.gpx",
+    3: "/gpx/CCC_day_3_Monterey_to_Big_Sur.gpx",
     4: "/gpx/CCC_Day_4_Paso_Robles_to_Cambria.gpx",
     5: "/gpx/CCC_Day_5_Cambria_to_Pismo_Beach.gpx",
     6: "/gpx/CCC_Day_6_Pismo_Beach_to_Buellton.gpx",
@@ -336,8 +336,14 @@ const title = currentDayInfo
     }
 
     try {
-      const response = await fetch(dayGpxFiles[day]);
+      const response = await fetch(dayGpxFiles[day], { cache: 'no-cache' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       const gpxText = await response.text();
+      if (!gpxText || gpxText.indexOf('<trkpt') === -1) {
+        throw new Error('GPX missing track points');
+      }
       const stats = parseGPXForStats(gpxText);
 
       const result = {
@@ -384,6 +390,8 @@ const title = currentDayInfo
       link.addEventListener('mouseenter', async () => {
         const statsElement = link.querySelector(`[data-day="${day}"]`);
         if (statsElement && statsElement.textContent === '-- mi • -- ft climbed') {
+          // Show a quick loading state on first hover while we fetch GPX stats
+          statsElement.textContent = 'loading…';
           const stats = await loadDayStats(day);
           statsElement.textContent = `${stats.miles} mi • ${stats.elevation} ft climbed`;
         }

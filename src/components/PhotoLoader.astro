@@ -355,6 +355,83 @@
           })
         }).addTo(window.routeMap);
 
+        // Bind hover tooltip; show a slideshow cycling through images every 2s while open
+        if (group.photos && group.photos.length > 0) {
+          // Only include images (skip videos)
+          const imagePhotos = group.photos.filter(p => (p.type || 'image') === 'image' && p.url);
+          if (imagePhotos.length > 0) {
+            const firstPhotoUrl = imagePhotos[0].url;
+            const tooltipHtml = `
+              <div class="photo-preview-tooltip-content">
+                <img class="preview-img active" src="${firstPhotoUrl}" alt="Photo preview" />
+                <img class="preview-img" src="${firstPhotoUrl}" alt="" />
+              </div>`;
+            marker.bindTooltip(tooltipHtml, {
+              direction: 'top',
+              className: 'photo-preview-tooltip',
+              sticky: true,
+              offset: [0, -8],
+              opacity: 1
+            });
+
+            // Start/stop slideshow on tooltip open/close
+            marker.on('tooltipopen', () => {
+              const tooltip = marker.getTooltip();
+              if (!tooltip) return;
+              const el = tooltip.getElement();
+              if (!el) return;
+              const imgs = el.querySelectorAll('img.preview-img');
+              if (!imgs || imgs.length < 2) return;
+              let front = imgs[0];
+              let back = imgs[1];
+              front.classList.add('active');
+              back.classList.remove('active');
+
+              // If multiple images, rotate at interval
+              if (imagePhotos.length > 1) {
+                // Clear any previous interval just in case
+                if (marker._photoSlideshowInterval) {
+                  clearInterval(marker._photoSlideshowInterval);
+                }
+                let idx = 0;
+                marker._photoSlideshowInterval = setInterval(() => {
+                  const t = marker.getTooltip();
+                  const tEl = t && t.getElement();
+                  if (!t || !tEl) {
+                    clearInterval(marker._photoSlideshowInterval);
+                    marker._photoSlideshowInterval = null;
+                    return;
+                  }
+                  const nextIdx = (idx + 1) % imagePhotos.length;
+                  const nextUrl = imagePhotos[nextIdx].url;
+                  const swap = () => {
+                    back.classList.add('active');
+                    front.classList.remove('active');
+                    const tmp = front; front = back; back = tmp;
+                    back.classList.remove('active');
+                    idx = nextIdx;
+                  };
+                  if (back.src === nextUrl) {
+                    swap();
+                  } else {
+                    back.onload = swap;
+                    back.src = nextUrl;
+                  }
+                }, 1000);
+              }
+            });
+
+            const stopSlideshow = () => {
+              if (marker._photoSlideshowInterval) {
+                clearInterval(marker._photoSlideshowInterval);
+                marker._photoSlideshowInterval = null;
+              }
+            };
+            marker.on('tooltipclose', stopSlideshow);
+            marker.on('remove', stopSlideshow);
+          }
+        }
+
         marker.on('click', () => {
           window.photoCarousel.open(group.photos, 0, {
             locationName: group.locationName,
@@ -385,6 +462,90 @@
                 allGroups: completeGroups
               });
             });
+
+            // Hover preview tooltip for No GPS button (slides to the right)
+            const badge = div.querySelector('.no-gps-control-badge');
+            if (badge) {
+              const imagePhotos = this.photosWithoutLocation.filter(p => (p.type || 'image') === 'image' && p.url);
+              let hoverInterval = null;
+              let tooltipEl = null;
+              let idx = 0;
+
+              const openTooltip = () => {
+                if (!imagePhotos.length) return;
+                // Ensure previous tooltip cleared
+                closeTooltip();
+
+                const rect = badge.getBoundingClientRect();
+                tooltipEl = document.createElement('div');
+                tooltipEl.className = 'photo-preview-tooltip custom right';
+                tooltipEl.innerHTML = `
+                  <div class="photo-preview-tooltip-content">
+                    <img class="preview-img active" src="${imagePhotos[0].url}" alt="Photo preview" />
+                    <img class="preview-img" src="${imagePhotos[0].url}" alt="" />
+                  </div>`;
+                // Position to the right of the badge
+                tooltipEl.style.position = 'fixed';
+                tooltipEl.style.left = `${Math.round(rect.right + 8)}px`;
+                tooltipEl.style.top = `${Math.round(rect.top)}px`;
+                tooltipEl.style.zIndex = '2000';
+                document.body.appendChild(tooltipEl);
+
+                // After layout, vertically center relative to badge height
+                requestAnimationFrame(() => {
+                  const tRect = tooltipEl.getBoundingClientRect();
+                  const top = rect.top + (rect.height - tRect.height) / 2;
+                  tooltipEl.style.top = `${Math.round(Math.max(4, top))}px`;
+                });
+
+                // Start slideshow if multiple
+                idx = 0;
+                if (imagePhotos.length > 1) {
+                  const imgs = tooltipEl.querySelectorAll('img.preview-img');
+                  if (!imgs || imgs.length < 2) return;
+                  let front = imgs[0];
+                  let back = imgs[1];
+                  front.classList.add('active');
+                  back.classList.remove('active');
+                  hoverInterval = setInterval(() => {
+                    if (!tooltipEl || !document.body.contains(tooltipEl)) {
+                      clearInterval(hoverInterval);
+                      hoverInterval = null;
+                      return;
+                    }
+                    const nextIdx = (idx + 1) % imagePhotos.length;
+                    const nextUrl = imagePhotos[nextIdx].url;
+                    const swap = () => {
+                      back.classList.add('active');
+                      front.classList.remove('active');
+                      const tmp = front; front = back; back = tmp;
+                      back.classList.remove('active');
+                      idx = nextIdx;
+                    };
+                    if (back.src === nextUrl) {
+                      swap();
+                    } else {
+                      back.onload = swap;
+                      back.src = nextUrl;
+                    }
+                  }, 1000);
+                }
+              };
+
+              const closeTooltip = () => {
+                if (hoverInterval) {
+                  clearInterval(hoverInterval);
+                  hoverInterval = null;
+                }
+                if (tooltipEl && document.body.contains(tooltipEl)) {
+                  document.body.removeChild(tooltipEl);
+                }
+                tooltipEl = null;
+              };
+
+              L.DomEvent.on(badge, 'mouseenter', openTooltip);
+              L.DomEvent.on(badge, 'mouseleave', closeTooltip);
+            }
 
             return div;
           }.bind(this)
@@ -503,6 +664,46 @@
     background: white;
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  /* Hover preview tooltip for photo markers and No-GPS button */
+  .leaflet-tooltip.photo-preview-tooltip,
+  .photo-preview-tooltip.custom {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    border: none;
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+
+  .leaflet-tooltip.photo-preview-tooltip::before,
+  .photo-preview-tooltip.custom::before {
+    display: none; /* Hide default caret */
+  }
+
+  .photo-preview-tooltip-content {
+    position: relative;
+    width: 140px;
+    height: 120px;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+
+  .photo-preview-tooltip-content img.preview-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 250ms ease;
+    will-change: opacity;
+  }
+
+  .photo-preview-tooltip-content img.preview-img.active {
+    opacity: 1;
   }
 
   .photo-count {
