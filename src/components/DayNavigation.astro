@@ -2,16 +2,16 @@
 // Navigation component for 8 days
 const currentDay = Astro.props.currentDay || 1;
 
-// Day information mapping
+// Day information mapping with GPX file paths for dynamic loading
 const dayInfo = {
-  1: { route: "San Francisco to Santa Cruz", date: "Sat, Sep 7, 2025", miles: "58.7", elevation: "2,143" },
-  2: { route: "Santa Cruz to Monterey", date: "Sun, Sep 8, 2025", miles: "42.3", elevation: "1,876" },
-  3: { route: "Monterey to Big Sur", date: "Mon, Sep 9, 2025", miles: "31.2", elevation: "2,987" },
-  4: { route: "Paso Robles to Cambria", date: "Tue, Sep 10, 2025", miles: "45.1", elevation: "1,543" },
-  5: { route: "Cambria to Pismo Beach", date: "Wed, Sep 11, 2025", miles: "38.9", elevation: "1,234" },
-  6: { route: "Pismo Beach to Buellton", date: "Thu, Sep 12, 2025", miles: "52.4", elevation: "2,087" },
-  7: { route: "Buellton to Ventura", date: "Fri, Sep 13, 2025", miles: "67.8", elevation: "3,156" },
-  8: { route: "Ventura to Malibu", date: "Sat, Sep 14, 2025", miles: "41.6", elevation: "1,789" }
+  1: { route: "San Francisco to Santa Cruz", date: "Sat, Sep 7, 2025", gpxFile: "/gpx/CCC_Day_1_fun_finders_2025.gpx" },
+  2: { route: "Santa Cruz to Monterey", date: "Sun, Sep 8, 2025", gpxFile: "/gpx/CCC_Day_2_Santa_Cruz_to_Monterey.gpx" },
+  3: { route: "Monterey to Big Sur", date: "Mon, Sep 9, 2025", gpxFile: "/gpx/CCC_Day_3_Monterey_to_Big_Sur.gpx" },
+  4: { route: "Paso Robles to Cambria", date: "Tue, Sep 10, 2025", gpxFile: "/gpx/CCC_Day_4_Paso_Robles_to_Cambria.gpx" },
+  5: { route: "Cambria to Pismo Beach", date: "Wed, Sep 11, 2025", gpxFile: "/gpx/CCC_Day_5_Cambria_to_Pismo_Beach.gpx" },
+  6: { route: "Pismo Beach to Buellton", date: "Thu, Sep 12, 2025", gpxFile: "/gpx/CCC_Day_6_Pismo_Beach_to_Buellton.gpx" },
+  7: { route: "Buellton to Ventura", date: "Fri, Sep 13, 2025", gpxFile: "/gpx/CCC_Day_7_Buellton_to_Ventura.gpx" },
+  8: { route: "Ventura to Malibu", date: "Sat, Sep 14, 2025", gpxFile: "/gpx/CCC_Day_8_Ventura_to_Malibu.gpx" }
 };
 
 // Generate dynamic title
@@ -40,7 +40,7 @@ const title = currentDayInfo
               <div class="tooltip-day">Day {day}</div>
               <div class="tooltip-route">{dayInfo[day]?.route || 'Route TBD'}</div>
               <div class="tooltip-date">{dayInfo[day]?.date || 'Date TBD'}</div>
-              <div class="tooltip-stats">{dayInfo[day]?.miles || '--'} mi • {dayInfo[day]?.elevation || '--'} ft climbed</div>
+              <div class="tooltip-stats" data-day={day}>-- mi • -- ft climbed</div>
             </div>
           </div>
         </a>
@@ -152,6 +152,18 @@ const title = currentDayInfo
     z-index: 1000;
   }
 
+  /* Tooltip positioning variants */
+  .tooltip.tooltip-left {
+    left: 0;
+    transform: translateX(0);
+  }
+
+  .tooltip.tooltip-right {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+  }
+
   .tooltip-content {
     background: rgba(0, 0, 0, 0.9);
     color: white;
@@ -252,3 +264,143 @@ const title = currentDayInfo
     }
   }
 </style>
+
+<script>
+  // GPX parsing functions (simplified version from Map component)
+  function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function parseGPXForStats(gpxText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(gpxText, 'application/xml');
+
+    const trackPoints = Array.from(doc.querySelectorAll('trkpt')).map(point => ({
+      lat: parseFloat(point.getAttribute('lat')),
+      lng: parseFloat(point.getAttribute('lon')),
+      elevation: point.querySelector('ele')?.textContent ? parseFloat(point.querySelector('ele').textContent) : null
+    }));
+
+    let totalDistance = 0;
+    let totalElevationGain = 0;
+
+    for (let i = 1; i < trackPoints.length; i++) {
+      const prev = trackPoints[i - 1];
+      const curr = trackPoints[i];
+
+      // Calculate distance
+      const segmentDistance = calculateDistance(prev.lat, prev.lng, curr.lat, curr.lng);
+      totalDistance += segmentDistance;
+
+      // Calculate elevation gain
+      if (prev.elevation !== null && curr.elevation !== null) {
+        const elevationDiff = curr.elevation - prev.elevation;
+        if (elevationDiff > 0) {
+          totalElevationGain += elevationDiff * 3.28084; // Convert meters to feet
+        }
+      }
+    }
+
+    return {
+      totalDistance: totalDistance,
+      totalElevationGain: totalElevationGain
+    };
+  }
+
+  // Day info with GPX files
+  const dayGpxFiles = {
+    1: "/gpx/CCC_Day_1_fun_finders_2025.gpx",
+    2: "/gpx/CCC_Day_2_Santa_Cruz_to_Monterey.gpx",
+    3: "/gpx/CCC_Day_3_Monterey_to_Big_Sur.gpx",
+    4: "/gpx/CCC_Day_4_Paso_Robles_to_Cambria.gpx",
+    5: "/gpx/CCC_Day_5_Cambria_to_Pismo_Beach.gpx",
+    6: "/gpx/CCC_Day_6_Pismo_Beach_to_Buellton.gpx",
+    7: "/gpx/CCC_Day_7_Buellton_to_Ventura.gpx",
+    8: "/gpx/CCC_Day_8_Ventura_to_Malibu.gpx"
+  };
+
+  // Cache for loaded stats
+  const statsCache = {};
+
+  // Load stats for a specific day
+  async function loadDayStats(day) {
+    if (statsCache[day]) {
+      return statsCache[day];
+    }
+
+    try {
+      const response = await fetch(dayGpxFiles[day]);
+      const gpxText = await response.text();
+      const stats = parseGPXForStats(gpxText);
+
+      const result = {
+        miles: stats.totalDistance.toFixed(1),
+        elevation: Math.round(stats.totalElevationGain).toLocaleString()
+      };
+
+      statsCache[day] = result;
+      return result;
+    } catch (error) {
+      console.error(`Failed to load stats for day ${day}:`, error);
+      return { miles: '--', elevation: '--' };
+    }
+  }
+
+  // Position tooltip to avoid going off-screen
+  function positionTooltip(link, tooltip) {
+    const linkRect = link.getBoundingClientRect();
+    const tooltipRect = tooltip.querySelector('.tooltip-content').getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+
+    // Reset classes
+    tooltip.classList.remove('tooltip-left', 'tooltip-right');
+
+    // Check if tooltip would go off the left edge
+    if (linkRect.left + (tooltipRect.width / 2) < 10) {
+      tooltip.classList.add('tooltip-left');
+    }
+    // Check if tooltip would go off the right edge
+    else if (linkRect.right - (tooltipRect.width / 2) > viewportWidth - 10) {
+      tooltip.classList.add('tooltip-right');
+    }
+    // Otherwise use center positioning (default)
+  }
+
+  // Setup hover listeners when DOM is ready
+  function setupHoverListeners() {
+    const dayLinks = document.querySelectorAll('.day-link');
+
+    dayLinks.forEach(link => {
+      const day = parseInt(link.dataset.day);
+      const tooltip = link.querySelector('.tooltip');
+
+      link.addEventListener('mouseenter', async () => {
+        const statsElement = link.querySelector(`[data-day="${day}"]`);
+        if (statsElement && statsElement.textContent === '-- mi • -- ft climbed') {
+          const stats = await loadDayStats(day);
+          statsElement.textContent = `${stats.miles} mi • ${stats.elevation} ft climbed`;
+        }
+
+        // Position tooltip to avoid going off-screen
+        if (tooltip) {
+          // Small delay to ensure tooltip content is rendered
+          setTimeout(() => positionTooltip(link, tooltip), 10);
+        }
+      });
+    });
+  }
+
+  // Setup listeners when page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupHoverListeners);
+  } else {
+    setupHoverListeners();
+  }
+</script>
