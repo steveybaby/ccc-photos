@@ -4,14 +4,16 @@ const { title } = Astro.props;
 ---
 
 <div class="ride-stats" id="ride-stats">
+  <div class="stats-toggle">
+    <span class="collapsed-title" id="collapsed-title">{title}</span>
+    <button id="toggle-stats-btn-collapsed" class="stats-toggle-btn" aria-expanded="false">Show Stats</button>
+  </div>
   {title && (
     <div class="stats-header">
       <h1 class="stats-title">{title}</h1>
+      <button id="toggle-stats-btn-expanded" class="stats-toggle-btn" aria-expanded="true">Minimize</button>
     </div>
   )}
-  <div class="stats-toggle">
-    <button id="toggle-stats-btn" class="stats-toggle-btn" aria-expanded="true">Hide Stats</button>
-  </div>
   <div class="stats-container">
     <div class="stat-item" id="photo-video-stat">
       <div class="stat-value" id="photo-count">--</div>
@@ -361,27 +363,22 @@ const { title } = Astro.props;
   // Stats show/hide toggle (collapses the stats boxes, leaving only the toggle)
   function setupStatsToggle() {
     const rideStats = document.getElementById('ride-stats');
-    const btn = document.getElementById('toggle-stats-btn');
-    if (!rideStats || !btn) return;
+    const btnExpanded = document.getElementById('toggle-stats-btn-expanded');
+    const btnCollapsed = document.getElementById('toggle-stats-btn-collapsed');
+    if (!rideStats) return;
 
-    const collapsed = localStorage.getItem('statsCollapsed') === '1';
-    applyStatsCollapsed(collapsed);
-
-    btn.addEventListener('click', () => {
-      const isCollapsed = rideStats.classList.contains('collapsed');
-      applyStatsCollapsed(!isCollapsed);
-    });
-
-    function applyStatsCollapsed(shouldCollapse) {
+    const applyStatsCollapsed = (shouldCollapse) => {
       if (shouldCollapse) {
         rideStats.classList.add('collapsed');
-        btn.textContent = 'Show Stats';
-        btn.setAttribute('aria-expanded', 'false');
+        btnCollapsed && (btnCollapsed.textContent = 'Show Stats');
+        btnCollapsed && btnCollapsed.setAttribute('aria-expanded', 'false');
+        btnExpanded && btnExpanded.setAttribute('aria-expanded', 'false');
         localStorage.setItem('statsCollapsed', '1');
       } else {
         rideStats.classList.remove('collapsed');
-        btn.textContent = 'Hide Stats';
-        btn.setAttribute('aria-expanded', 'true');
+        btnExpanded && (btnExpanded.textContent = 'Minimize');
+        btnCollapsed && btnCollapsed.setAttribute('aria-expanded', 'true');
+        btnExpanded && btnExpanded.setAttribute('aria-expanded', 'true');
         localStorage.removeItem('statsCollapsed');
       }
       // Recalculate map height/size after layout changes
@@ -396,24 +393,32 @@ const { title } = Astro.props;
           }
         } catch (_) {}
       }, 60);
-    }
+    };
+
+    const collapsed = localStorage.getItem('statsCollapsed') === '1';
+    applyStatsCollapsed(collapsed);
+
+    btnExpanded && btnExpanded.addEventListener('click', () => applyStatsCollapsed(true));
+    btnCollapsed && btnCollapsed.addEventListener('click', () => applyStatsCollapsed(false));
   }
 </script>
 
 <style>
   .ride-stats {
-    margin: 0.5rem 0 2rem 0;
+    margin: 0 0 1.25rem 0; /* reduce space above */
     background: transparent;
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 1.1rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(6px);
   }
 
   .stats-toggle {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 0.5rem;
+    display: none; /* shown only in collapsed state */
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
   }
 
   .stats-toggle-btn {
@@ -433,8 +438,11 @@ const { title } = Astro.props;
   }
 
   .stats-header {
-    text-align: center;
-    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 
   .stats-title {
@@ -442,7 +450,7 @@ const { title } = Astro.props;
     font-weight: 900;
     color: #000000;
     margin: 0;
-    padding: 1rem 2rem;
+    padding: 0.25rem 0.5rem;
     background: transparent;
     border-radius: 12px;
     display: inline-block;
@@ -457,8 +465,35 @@ const { title } = Astro.props;
   }
 
   /* Collapse only the boxes (keep title + toggle visible) */
+  .ride-stats.collapsed .stats-header,
   .ride-stats.collapsed .stats-container {
     display: none;
+  }
+
+  /* Compact padding when collapsed */
+  .ride-stats.collapsed {
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Collapsed inline title on the left of the toggle */
+  .collapsed-title {
+    display: none;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #000;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ride-stats.collapsed .collapsed-title {
+    display: inline;
+  }
+
+  /* Only show the collapsed toggle row when collapsed */
+  .ride-stats.collapsed .stats-toggle {
+    display: flex;
   }
 
   .stat-item {
