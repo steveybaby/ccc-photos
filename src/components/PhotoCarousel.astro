@@ -79,6 +79,27 @@
       this.bindEvents();
     }
 
+    // Ensure any map hover tooltips/slideshows are closed before showing modal
+    closeHoverSlideshows() {
+      try {
+        if (window.routeMap && typeof window.routeMap.eachLayer === 'function') {
+          window.routeMap.eachLayer(layer => {
+            if (typeof layer.closeTooltip === 'function') {
+              try { layer.closeTooltip(); } catch (_) {}
+            }
+            if (layer._photoSlideshowInterval) {
+              try { clearInterval(layer._photoSlideshowInterval); } catch (_) {}
+              layer._photoSlideshowInterval = null;
+            }
+          });
+        }
+        // Remove any custom No-GPS hover tooltips; their own intervals self-clear when DOM node is gone
+        document.querySelectorAll('.photo-preview-tooltip.custom').forEach(el => {
+          if (el && el.parentElement) el.parentElement.removeChild(el);
+        });
+      } catch (_) {}
+    }
+
     bindEvents() {
       this.closeBtn.addEventListener('click', () => this.close());
       this.prevBtn.addEventListener('click', () => this.prev());
@@ -118,6 +139,8 @@
     }
 
     async open(photos, startIndex = 0, locationContext = null) {
+      // Close any active hover tooltips/slideshows before opening
+      this.closeHoverSlideshows();
       this.photos = photos;
       this.currentIndex = startIndex;
       this.locationContext = locationContext;
