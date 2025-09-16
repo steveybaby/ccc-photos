@@ -9,6 +9,9 @@ const { title } = Astro.props;
       <h1 class="stats-title">{title}</h1>
     </div>
   )}
+  <div class="stats-toggle">
+    <button id="toggle-stats-btn" class="stats-toggle-btn" aria-expanded="true">Hide Stats</button>
+  </div>
   <div class="stats-container">
     <div class="stat-item" id="photo-video-stat">
       <div class="stat-value" id="photo-count">--</div>
@@ -345,12 +348,55 @@ const { title } = Astro.props;
   // Start checking when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+      setupStatsToggle();
       checkForGpxData();
       checkForPhotoData();
     });
   } else {
+    setupStatsToggle();
     checkForGpxData();
     checkForPhotoData();
+  }
+
+  // Stats show/hide toggle (collapses the stats boxes, leaving only the toggle)
+  function setupStatsToggle() {
+    const rideStats = document.getElementById('ride-stats');
+    const btn = document.getElementById('toggle-stats-btn');
+    if (!rideStats || !btn) return;
+
+    const collapsed = localStorage.getItem('statsCollapsed') === '1';
+    applyStatsCollapsed(collapsed);
+
+    btn.addEventListener('click', () => {
+      const isCollapsed = rideStats.classList.contains('collapsed');
+      applyStatsCollapsed(!isCollapsed);
+    });
+
+    function applyStatsCollapsed(shouldCollapse) {
+      if (shouldCollapse) {
+        rideStats.classList.add('collapsed');
+        btn.textContent = 'Show Stats';
+        btn.setAttribute('aria-expanded', 'false');
+        localStorage.setItem('statsCollapsed', '1');
+      } else {
+        rideStats.classList.remove('collapsed');
+        btn.textContent = 'Hide Stats';
+        btn.setAttribute('aria-expanded', 'true');
+        localStorage.removeItem('statsCollapsed');
+      }
+      // Recalculate map height/size after layout changes
+      setTimeout(() => {
+        try {
+          window.dispatchEvent(new Event('resize'));
+          if (window.routeMap) {
+            window.routeMap.invalidateSize();
+            if (window.routeBounds) {
+              window.routeMap.fitBounds(window.routeBounds, { padding: [20, 20] });
+            }
+          }
+        } catch (_) {}
+      }, 60);
+    }
   }
 </script>
 
@@ -362,6 +408,28 @@ const { title } = Astro.props;
     padding: 1.5rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(6px);
+  }
+
+  .stats-toggle {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+  }
+
+  .stats-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #2563eb;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 4px 6px;
+    border-radius: 6px;
+  }
+
+  .stats-toggle-btn:hover {
+    color: #1e40af;
+    text-decoration-thickness: 2px;
   }
 
   .stats-header {
@@ -386,6 +454,11 @@ const { title } = Astro.props;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1rem;
+  }
+
+  /* Collapse only the boxes (keep title + toggle visible) */
+  .ride-stats.collapsed .stats-container {
+    display: none;
   }
 
   .stat-item {
