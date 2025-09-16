@@ -334,6 +334,8 @@
       }
 
       const L = await import('https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js');
+      // Detect touch/coarse pointer devices (treat as mobile for hover behavior)
+      const isMobile = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
 
       // Create complete groups array including no-GPS photos
       const completeGroups = [...this.photoGroups];
@@ -356,7 +358,7 @@
         }).addTo(window.routeMap);
 
         // Bind hover tooltip; show a slideshow cycling through images every 2s while open
-        if (group.photos && group.photos.length > 0) {
+        if (!isMobile && group.photos && group.photos.length > 0) {
           // Only include images (skip videos)
           const imagePhotos = group.photos.filter(p => (p.type || 'image') === 'image' && p.url);
           if (imagePhotos.length > 0) {
@@ -465,7 +467,7 @@
 
             // Hover preview tooltip for No GPS button (slides to the right)
             const badge = div.querySelector('.no-gps-control-badge');
-            if (badge) {
+            if (badge && !isMobile) {
               const imagePhotos = this.photosWithoutLocation.filter(p => (p.type || 'image') === 'image' && p.url);
               let hoverInterval = null;
               let tooltipEl = null;
